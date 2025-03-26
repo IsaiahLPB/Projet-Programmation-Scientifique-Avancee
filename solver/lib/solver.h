@@ -5,7 +5,7 @@
 
 #include "../lib/complexmat.h"
 
-using namespace arma;
+#define epsilon 10e-6
 
 class Solver
 {
@@ -14,7 +14,7 @@ public:
   complex_mat FTCS_derivation(complex_mat);
   complex_mat BTCS_derivation(complex_mat);
   complex_mat CTCS_derivation(complex_mat);
-  mat V;
+  arma::mat V;
 
 private:
   int h_bar = 1;
