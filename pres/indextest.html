@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>IPS / PSA</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="core/fonts/mono.css">
+    <link rel="stylesheet" type="text/css" href="core/css/animate.css">
+    <link rel="stylesheet" type="text/css" href="core/css/cinescript.css">
+    <link rel="stylesheet" type="text/css" href="core/css/style_core.css">
+    <link rel="stylesheet" type="text/css" href="core/css/mermaid.css">
+    <link rel="stylesheet" type="text/css" href="core/css/gitgraph.css">
+    <link rel="stylesheet" type="text/css" href="core/css/style_ensiie.css">
+    <link rel="stylesheet" type="text/css" href="core/css/katex.css">
+</head>
+
+<body>
+    <textarea id="source" readonly>
+
+class: middle
+
+# Projet INPS 2
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+
+
+I. [Introduction au problème](index.html#2) 
+--
+
+  1. Présentation du problème
+  2. Polynômes d'Hermite et Laguerre
+
+--
+
+II. [Résolution du problème](index.html#4)
+--
+
+   1. Implémentation naïve de la solution 
+   2. Implémentation Optimisée
+
+--
+
+III. [Tests unitaires et représentation graphique](index.html#8)
+--
+
+1. Tests unitaires 
+2. Représentation 2D
+3. Représentation 3D
+4. Conclusion
+---
+class: middle
+# I - Introduction - Présentation du problème
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+- Densité locale d'un système nucléaire.
+- L'objectif était de calculer la densité nucléaire local d'un système et d'effectuer un plot 2d et 3d des résultats.
+
+---
+class: middle
+# I - Introduction - Polynomes d'Hermite et Laguerre
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+Pour calculer les polynômes d'Hermite, nous avons utilisé la définition récursive suivante :
+`$$H_0(z) = 1$$`
+`$$H_1(z) = 2z$$`
+`$$\forall n\ge 1, H_{n+1}(z) = 2zH_n(z)-2nH_{n-1}(z).$$`
+
+```cpp
+void Poly::calcHermite(int n, arma::vec zVals)
+{
+    // Initialize the matrix for Hermite polynomials with double values
+    hermiteMat = arma::mat(n + 1, zVals.n_elem, arma::fill::zeros);
+    // Base cases for Hermite polynomials: H_0(z) = 1 and H_1(z) = 2z
+    hermiteMat.row(0).ones();  // H_0(z) = 1
+    if (n >= 1) {
+        hermiteMat.row(1) = 2.0 * zVals.t();  // H_1(z) = 2z
+    }
+    // Recursive computation of Hermite polynomials H_n(z)
+    for (int i = 2; i <= n; ++i) {
+        hermiteMat.row(i) = 2.0 * zVals.t() % hermiteMat.row(i - 1) - 2.0 * (i - 1) * hermiteMat.row(i - 2);
+    }
+}
+
+```
+---
+class: middle
+
+# I - Introduction - Calcul des polynômes de Laguerre 
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+La formule récursive de calcul des polynômes de Laguerre est :
+### 
+
+`$$
+\begin{aligned}
+L^{m}_0(\eta)&=1\\
+L^{m}_1(\eta)&=1+m-\eta\\
+\forall (m, n) \in \mathbb{N}^{2}, n > 1, L^{m}_{n}(\eta)&=\left(2+\frac{m-1-\eta}{n}\right)L^{m}_{n-1}(\eta)-\left(1+\frac{m-1}{n}\right)L^{m}_{n-2}(\eta)
+\end{aligned}
+$$`
+
+### Implémentation
+
+```cpp
+void Poly::calcLaguerre(int m_max, int n_max, arma::vec rVals)
+{
+    // Initialize a 3D cube to store Laguerre polynomial values
+    laguerreCube = arma::cube(rVals.n_elem, n_max + 1, m_max + 1, arma::fill::zeros);
+    for (int m = 0; m <= m_max; ++m)  // Loop up to and including m_max
+    {
+        arma::vec L_0 = arma::vec(rVals.n_elem, arma::fill::ones);  
+        laguerreCube.slice(m).col(0) = L_0;
+        if (n_max > 0)
+        {   
+            arma::vec L_1 = m + 1 - rVals;  
+            laguerreCube.slice(m).col(1) = L_1;
+            // Recurrence relation for n > 1
+            for (int n = 2; n <= n_max; ++n)
+            {   
+                arma::vec L_n = ((2.0 * (n - 1) + m + 1 - rVals) % L_1 - (n + m - 1) * L_0) / n;
+                laguerreCube.slice(m).col(n) = L_n;
+                // Update L_0 and L_1 for the next iteration
+                L_0 = L_1;
+                L_1 = L_n;
+            }
+        }
+    }
+}
+
+```
+---
+class: middle
+
+
+
+# II - Implémentation - Exécution du programme
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+Notre programme se lance avec le script run.sh présent à la racine de notre projet.
+
+On exécute le script suivant :
+``` sh
+
+#!/bin/bash
+
+#make clean
+
+echo "----------Compilation avec make du projet----------"
+make
+
+echo " "
+echo "----------Execution du programme principal----------"
+./bin/main
+
+echo " "
+echo "----------Execution de plot.py pour l'affichage----------"
+python3 plot.py
+
+echo " "
+echo "----------Affichage de la denstité avec povray----------"
+#povray +A0.0001 -W800 -H600 +P +Q11 src/visu.pov
+
+
+```
+---
+class: middle
+
+# II - Makefile
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+Le Makefile appelé est le suivant :
+```Makefile
+# Variables pour la compilation
+C++ = g++
+CFLAGS = $(shell pkg-config --cflags armadillo) -Wall -Werror -g -O2
+LDLIBS = $(shell pkg-config --libs armadillo) -llapack -lblas
+SDIR = src
+HDIR = lib
+BDIR = bin
+TDIR = test
+OUTDIR = output
+TARGET = $(BDIR)/main
+TEST_TARGET = $(BDIR)/test_runner
+
+# Variables pour Doxygen
+DOXYGEN = doxygen
+DOXYFILE = doc/Doxyfile
+DOCDIR = doc/html
+
+# Sources, objets, et fichiers de test
+SRCS = $(wildcard $(SDIR)/*.cpp)
+OBJS = $(patsubst $(SDIR)/%.cpp, $(BDIR)/%.o, $(filter-out $(SDIR)/main.cpp, $(SRCS)))
+ALL_OBJS = $(wildcard $(BDIR)/*)
+TEST_HEADERS = $(wildcard $(TDIR)/test_*.h)
+ALL_OBJS = $(wildcard $(BDIR)/*.o)
+
+RUNNER_CPP = $(BDIR)/runner.cpp
+RUNNER_OBJ = $(BDIR)/runner.o
+
+# Compilation principale
+all: $(TARGET)
+
+$(TARGET): $(OBJS) $(BDIR)/main.o | $(BDIR)
+	$(C++) $(OBJS) $(BDIR)/main.o -o $(TARGET) $(LDLIBS)
+
+$(BDIR)/main.o: $(SDIR)/main.cpp
+	$(C++) $(CFLAGS) -c $(SDIR)/main.cpp -o $@
+```
+
+---
+class: middle
+
+# II - Makefile
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+```Makefile
+# Génération et compilation des tests avec CxxTest
+$(RUNNER_CPP): $(TEST_HEADERS)
+	cxxtestgen --error-printer -o $(RUNNER_CPP) $(TEST_HEADERS)
+
+$(RUNNER_OBJ): $(RUNNER_CPP)
+	$(C++) $(CFLAGS) -c $(RUNNER_CPP) -o $@
+
+tests: $(TEST_TARGET)
+
+$(TEST_TARGET): $(RUNNER_OBJ) $(OBJS) | $(BDIR)
+	$(C++) $(RUNNER_OBJ) $(OBJS) -o $(TEST_TARGET) $(LDLIBS)
+
+$(BDIR)/%.o: $(SDIR)/%.cpp $(HDIR)/%.h
+	$(C++) $(CFLAGS) -c $< -o $@
+
+$(BDIR):
+	mkdir -p $(BDIR)
+
+# Génération de la documentation avec Doxygen
+.PHONY: doc
+doc:
+	@echo "Génération de la documentation avec Doxygen..."
+	$(DOXYGEN) $(DOXYFILE)
+	@echo "La documentation HTML a été générée dans $(DOCDIR)"
+
+# Nettoyage des fichiers objets, binaires, et documentation
+.PHONY: clean
+clean:
+	rm -f $(OBJS) $(RUNNER_OBJ) $(TARGET) $(TEST_TARGET) $(RUNNER_CPP) $(BDIR)/main.o $(ALL_OBJS)
+	rm -rf $(DOCDIR)
+	rm -f $(wildcard $(OUTDIR)/*)
+```
+---
+class: middle
+
+# II - Implémentation - Fonctionnement du Main  
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+
+#### Utilisation du main
+Dans le main, on va lire dans le fichier /input/input.txt afin de récupérer des données que l'on va utiliser dans le projet
+Puis on va commencer par créer les vecteurs z et r.
+
+```cpp
+int main()
+{
+    float z_min, z_max, r_min, r_max;
+    int N_z, N_r;
+
+    read_input_file(&z_min, &z_max, &N_z, &r_min, &r_max, &N_r);
+
+    // Creats a vector of z
+    vec z_vec = arma::linspace(z_min, z_max, N_z);
+
+    // Creats a vector of r
+    vec r_vec = arma::linspace(r_min, r_max, N_r);
+```
+
+---
+class: middle
+
+# II - Implémentation - Fonctionnement du Main (2)
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+Une fois les vecteurs crées on peut faire appel aux différents algorithmes utilisés pour calculer les solutions,
+Nous en possédons 4. Pour observer le temps on fait appel à clock0.tic() et clock0.toc(); 
+
+### Suite du main :
+
+```cpp
+Density density;
+arma::mat local_density = arma::zeros(z_vec.n_elem, r_vec.n_elem);
+// === Version 0 ===
+cout << "Si c'est trop long, commentez l'appel à la fonction naive ou réduire le nombre de points" << endl;
+arma::wall_clock clock0;
+clock0.tic();
+local_density = density.calcDensityNaive(z_vec, r_vec);
+double time0 = clock0.toc();
+cout << "Naive algo : " << time0 << " [s]" << endl;
+
+// === Version 1 ===
+arma::wall_clock clock1;
+clock1.tic();
+local_density = density.calcDensityOpti_1(z_vec, r_vec);
+double time1 = clock1.toc();
+cout << "Algo opti 1: " << time1 << " [s]" << endl;
+
+// === Version 2 ===
+arma::wall_clock clock2;
+clock2.tic();
+local_density = density.calcDensityOpti_2(z_vec, r_vec);
+double time2 = clock2.toc();
+cout << "Algo opti 2: " << time2 << " [s]" << endl;
+
+// === Version 3 ===
+arma::wall_clock clock3;
+clock3.tic();
+local_density = density.calcDensityOpti_3(z_vec, r_vec);
+double time3 = clock3.toc();
+cout << "Algo opti 3: " << time3 << " [s]" << endl;
+
+arma::mat res = local_density;
+```
+---
+class: middle
+# II - Implémentation - Modèle naïf
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+Pour le modèle naïf on utilise la formule donnée dans le cours qui suit : 
+`$$
+\rho(\mathbf{r})
+\equiv
+\sum_{a,b} \rho_{ab}\psi_a(\mathbf{r})\psi^*_b(\mathbf{r})
+=
+\sum_{{m_a, n_a, n_{za}} \atop {m_b,n_b,n_{zb}}}\rho_{m_a, n_a, n_{za}, m_b,n_b,n_{zb}}\psi_{m_a,n_a,n_{za}}(\mathbf{r})\psi^*_{m_b,n_b,n_{zb}}(\mathbf{r})
+$$`
+
+```cpp 
+arma::mat Density::calcDensityNaive(arma::vec zVals, arma::vec rVals)
+{
+    arma::uword nbZ = zVals.n_elem;
+    arma::uword nbR = rVals.n_elem;
+    Basis basis(1.935801664793151, 2.829683956491218, 14, 1.3);
+    // Initialize the result matrix to zero
+    arma::mat result = arma::zeros(nbZ, nbR);
+	// === Version 0 ===
+	uint a = 0;
+	for (int ma = 0; ma < basis.mMax; ++ma) {
+		for (int na = 0; na < basis.nMax(ma); ++na) {
+			for (int n_za = 0; n_za < basis.n_zMax(ma, na); ++n_za) {
+				uint b = 0;
+				for (int mb = 0; mb < basis.mMax; ++mb) {
+					for (int nb = 0; nb < basis.nMax(mb); ++nb) {
+						for (int n_zb = 0; n_zb < basis.n_zMax(mb, nb); ++n_zb) {
+							// Evaluate the basis functions at all points (zVals, rVals)
+							arma::mat psiA = basis.psi(ma, na, n_za, zVals, rVals);
+							arma::mat psiB = basis.psi(mb, nb, n_zb, zVals, rVals);
+							// Accumulate the result
+							result += psiA % psiB * rho(a, b);
+							b++  ;
+						}
+					}
+				}
+				a++;
+			}
+		}
+	}
+	return result;
+}
+```
+
+---
+lass: middle
+# II - Implémentation - Modèle naïf (2)
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+Or, nous avons besoin des valeurs des vecteurs z et r obtenus à  l'aide des formules suivantes :
+`$$
+Z(z, n_z)
+\equiv
+         \frac{1}{\sqrt{b_z}}
+         \frac{1}{\sqrt{2^{n_z} \sqrt{\pi}n_z!}}
+         e^{-\frac{z^2}{2b_z^2}}H_{n_z}\left(\frac{z}{b_z}\right)
+$$`
+```cpp
+arma::vec Basis::zPart(arma::vec zvec, int nz)
+{
+    Poly poly;
+    poly.calcHermite(nz, zvec / bz);
+
+    double c = 1 / (sqrt(bz) * sqrt(pow(2, nz) * tgamma(nz + 1) * sqrt(M_PI)));
+    arma::vec exp_part = arma::exp(-0.5 * arma::pow(zvec / bz, 2.0));
+
+    return c * exp_part % poly.hermite(nz);
+}
+```
+et 
+`$$
+R(r_\perp, m, n)
+         \equiv
+         \frac{1}{b_{\perp}\sqrt{\pi}}
+         \sqrt{\frac{n!}{(n+|m|)!}}
+         e^{-\frac{r_{\perp}^2}{2b_{\perp}^2}}
+         \left(\frac{r_{\perp}}{b_{\perp}}\right)^{|m|}
+         L_n^{|m|}\left(\frac{r_{\perp}^2}{b_{\perp}^2}\right).
+$$`
+```cpp
+arma::vec Basis::rPart(arma::vec rvec, int m, int n)
+{
+    double am = abs(m);
+
+    Poly poly;
+    poly.calcLaguerre(am, n, arma::pow(rvec / br, 2.0));
+
+    double c = (1 / (br * sqrt(M_PI))) * sqrt(tgamma(n + 1) / tgamma(n + am + 1));
+    arma::vec exp_part = arma::exp(-0.5 * arma::pow(rvec / br, 2.0));
+
+    return c * exp_part % arma::pow(rvec / br, am) % poly.laguerre(am, n);
+}
+```
+---
+
+class: middle
+
+# II - Implémentation - Modèles Optimisés
+
+## 1ère optimisation : symétrie
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+Pour optimiser le programme, plusieurs points peuvent être améliorés. 
+Tout d'abord on peut voir que la matrice rho est symétrique 
+
+```cpp
+// === Version 1 : rho is symetric ===
+uint a = 0;
+for (int ma = 0; ma < basis.mMax; ++ma) {
+    for (int na = 0; na < basis.nMax(ma); ++na) {
+        for (int n_za = 0; n_za < basis.n_zMax(ma, na); ++n_za) {
+            uint b = a; // Start b from a (symmetry exploitation)
+            for (int mb = ma; mb < basis.mMax; ++mb) {
+                for (int nb = (mb == ma ? na : 0); nb < basis.nMax(mb); ++nb) {
+                    for (int n_zb = (mb == ma && nb == na ? n_za : 0); n_zb < basis.n_zMax(mb, nb); ++n_zb) {
+                        // Evaluate psi_b from cache
+                        arma::mat psiA = basis.psi(ma, na, n_za, zVals, rVals);
+                        arma::mat psiB = basis.psi(mb, nb, n_zb, zVals, rVals);
+
+                        // Symmetry consideration
+                        if (a == b) {
+                            result += psiA % psiB * rho(a, b);
+                        } else {
+                            result += 2 * (psiA % psiB) * rho(a, b);
+                        }
+                        b++;
+                    }
+                }
+            }
+            a++;
+        }
+    }
+}
+return result;
+}
+```
+---
+class: middle
+
+# II - Implémentation - Modèles Optimisés (2)
+## 2ème optimisation : m-diagonalité
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+En effet on remarque que la matrice rho est également m-diagonale
+
+```cpp
+// === Version 2 : rho is m-diagonal === 
+uint a = 0;
+for (int ma = 0; ma < basis.mMax; ++ma) {
+    for (int na = 0; na < basis.nMax(ma); ++na) {
+        for (int n_za = 0; n_za < basis.n_zMax(ma, na); ++n_za) {
+            uint b = a; // Start b from a (symmetry exploitation)
+            for (int nb = na ; nb < basis.nMax(ma); ++nb) {
+                for (int n_zb = (nb == na ? n_za : 0); n_zb < basis.n_zMax(ma, nb); ++n_zb) {
+                    arma::mat psiA = basis.psi(ma, na, n_za, zVals, rVals);
+                    arma::mat psiB = basis.psi(ma, nb, n_zb, zVals, rVals);
+
+                    // Symmetry consideration
+                    if (a == b) {
+                        result += psiA % psiB * rho(a, b);
+                    } else {
+                        result += 2 * (psiA % psiB) * rho(a, b);
+                    }
+                    b++;
+                }
+            }
+            a++;
+        }
+    }
+}
+return result;
+```
+
+---
+class: middle
+
+# II - Implémentation - Modèles Optimisés (3)
+
+## 3ème optimisation : Meilleurs parcours de boucle
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+Les boucles peuvent être parcourus de différentes manières et peuvent être mises plus profondément dans le code 
+pour minimiser leur impact sur le reste des calculs
+```cpp
+// === Version 3 : moving loops as deep as possible ===
+uint a = 0;
+for (int ma = 0; ma < basis.mMax; ++ma) {
+    for (int na = 0; na < basis.nMax(ma); ++na) {
+        for (int n_za = 0; n_za < basis.n_zMax(ma, na); ++n_za) {
+            arma::mat psiA = basis.psi(ma, na, n_za, zVals, rVals);
+
+            // Diagonal contributions (a == b)
+            uint b = a;
+            result += psiA % psiA * rho(a, b);
+
+            // Non-diagonal contributions (a < b)
+            b = a + 1; // Start at the next index
+            for (int nb = na; nb < basis.nMax(ma); ++nb) {
+                for (int n_zb = (nb == na ? n_za + 1 : 0); n_zb < basis.n_zMax(ma, nb); ++n_zb) {
+                    arma::mat psiB = basis.psi(ma, nb, n_zb, zVals, rVals);
+
+                    // Accumulate the symmetric terms
+                    result += 2 * (psiA % psiB) * rho(a, b);
+                    b++;
+                }
+            }
+            a++;
+        }
+    }
+}
+return result;
+```
+
+---
+class: middle
+# II - Implémentation - Comparaison des temps obtenus
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+Après tests effectifs de ces 4 versions de l'algorithme, voici les résultats que l'on peut en tirer :
+
+
+```cpp
+
+```
+---
+class: middle
+#III - Tests unitaires
+
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+Une fois que les valeurs des polynômes en tout point `\(z_i\)` (noeuds de la quadrature) sont obtenues,
+il suffit d'appliquer la formule précédemment calculée, en vérifiant que les conditions d'exactitude de la quadrature sont réunies.
+Nous avons utilisé N=25 pour la somme, ce qui inclut une égalité pour les niveaux d'énergie inférieurs ou égaux a 12.
+Voici les tableaux des poids et des noeuds de la quadrature.
+
+```cpp
+float xi[25]={-6.16427243, -5.41363636, -4.78532037, -4.21860944, -3.69028288,
+-3.18829492, -2.70532024, -2.23642013, -1.77800112, -1.3272807 ,
+-0.88198276, -0.4401473 ,  0.        ,  0.4401473 ,  0.88198276,
+ 1.3272807 ,  1.77800112,  2.23642013,  2.70532024,  3.18829492,
+ 3.69028288,  4.21860944,  4.78532037,  5.41363636,  6.16427243};//This is the xi (Nodes) We use only the twenty first one so we can technically go up to 12 
+                                                                 // "true" energy levels
+
+float wi[25]={2.71192351e-17, 1.25881499e-13, 6.71963842e-11, 1.01703825e-08,
+6.25703250e-07, 1.89159730e-05, 3.15083639e-04, 3.11570872e-03,
+1.92430990e-02, 7.68889952e-02, 2.03621137e-01, 3.63088989e-01,
+4.39868722e-01, 3.63088989e-01, 2.03621137e-01, 7.68889952e-02,
+1.92430990e-02, 3.11570872e-03, 3.15083639e-04, 1.89159730e-05,
+6.25703250e-07, 1.01703825e-08, 6.71963842e-11, 1.25881499e-13, // This is the wi  (weight) 
+2.71192351e-17};
+
+
+```
+
+---
+class: middle
+# III - Représentation 2D
+Et voici comment nous les obtenons : 
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+```cpp
+bool make_ortho_all(int n_rows){
+    int nb_false = 0;
+    int tot= 0;
+    for(int i=0 ; i< n_rows ; i++){
+        float res1 = (1 / (sqrt(pow(2, i) * factoriel(i)))) * pow(1 / M_PI, 0.25);
+        for(int j=0 ; j< n_rows ; j++ ){
+            float res2 = (1 / (sqrt(pow(2, j) * factoriel(j)))) * pow(1 / M_PI, 0.25);
+
+            float res = make_ortho(i,j);
+            if(i==j){
+                if (res1*res2*res > 0.9999 && res1*res2*res < 1.0001 ){
+                    tot++;
+                }
+                else{
+                    nb_false++;
+                    tot++;
+                }
+            }   
+            else{
+                if(res1*res2*res < 0.001 && res1*res2*res > -0.001){
+                    tot++;
+                }
+                else{
+                    nb_false++;
+                    tot++;
+                }}}}
+    printf("number of false is : %d out of %d\n", nb_false, tot);
+    if(nb_false == 0){
+        printf("Then, every check of orthonormality is true ! Good job ! ");
+        return true;
+    }
+    else{
+        printf("Then, we have at least one false check ! Too bad !");
+        return false;
+    }
+}
+```
+---
+class: middle
+# III - Représentation 3D - matrice vers cube
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+### Pour pouvoir effectuer la représentation 3D, nous avons besoin de transformer la matrice 2D en cube 3D. 
+Sachant que l'on a une symétrie autour de l'axe de rotation, on peut transformer la matrice ainsi :
+
+```cpp
+arma::cube matrixToCube(const arma::mat& matrix)
+{
+    arma::cube cubeResult = arma::zeros(32, 32, 64);
+    //cout << "matrix size : " << matrix.n_rows << "*" << matrix.n_cols << endl;
+    for (int x = 0; x < 32; x++)
+    {
+        for (int y = 0; y < 32; y++)
+        {
+            int distance = static_cast<int>(std::sqrt(std::pow(x - 32, 2) + std::pow(y - 32, 2)));
+            for (int z = 0; z < 64; z++)
+            {
+                // on fait la moyenne entre 2 points
+                if (distance < 32)
+                {
+                    if (distance <= 0)
+                    {cubeResult(x, y, z) = matrix(z, 0);
+                    }
+                    else
+                    {cubeResult(x, y, z) = matrix(z, distance);
+                    }
+                }
+                else
+                {cubeResult(x, y, z) = 0;
+                }
+            }
+        }
+    }
+	return cubeResult;
+}
+```
+---
+class: middle
+# III - Représentation 3D - Résultat obtenu
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+##### Pour les Psi :
+```cpp
+
+class PsiTestSuite : public CxxTest::TestSuite {
+    public:
+        void testPsiCalc() {
+            // Créer un vecteur z avec des entiers de 0 à 7 inclus
+            arma::vec z_vec = {0, 1, 2, 3, 4, 5, 6, 7};
+    
+            // Créer une instance de Psi
+            Psi psi(z_vec);
+    
+            // Calculer la matrice des polynômes d'Hermite pour n_max = 5
+            Hermite hermite(z_vec);
+            arma::mat matrix_hermite = hermite.hermite_calc(5);
+    
+            // Calculer la matrice psi
+            arma::mat matrix_psi = psi.psi_calc(5, matrix_hermite);
+    
+            // Effectuer des assertions pour vérifier les résultats
+            for (int n = 0; n <= 5; ++n) {
+                for (size_t j = 0; j < z_vec.n_elem; ++j) {
+                    double expected_value = calculateExpectedPsi(n, z_vec[j], matrix_hermite, z_vec);
+                    TS_ASSERT_DELTA(matrix_psi(n, j), expected_value, 1e-6); // Tolerance de 1e-6
+                }
+            }
+        }
+    }
+
+```
+---
+class: middle
+# III - Conclusion 
+.footnote[E.Onal, S. Darnault, T. Gounine - ENSIIE - 2023]
+
+### L'optimisation des algortihmes a permis un gain de facteur compris entre 30 et 35 par rapport à l'algorithme naïf.
+
+
+
+
+
+
+
+
+
+    </textarea>
+
+    <script src="core/javascript/remark.js"></script>
+    <script src="core/javascript/katex.min.js"></script>
+    <script src="core/javascript/auto-render.min.js"></script>
+    <script src="core/javascript/emojify.js"></script>
+    <script src="core/javascript/mermaid.js"></script>
+    <script src="core/javascript/term.js"></script>
+    <script src="core/javascript/jquery-2.1.1.min.js"></script>
+    <script src="core/javascript/extend-jquery.js"></script>
+    <script src="core/javascript/cinescript.js"></script>
+    <script src="core/javascript/gitgraph.js"></script>
+    <script>
+
+        // === Remark.js initialization ===
+        var slideshow = remark.create({
+            highlightStyle: 'monokai',
+            countIncrementalSlides: false,
+            highlightLines: false
+        });
+
+        // === Mermaid.js initialization ===
+        mermaid.initialize({
+            startOnLoad: false,
+            cloneCssStyles: false,
+            flowchart: {
+                height: 50
+            },
+            sequenceDiagram: {
+                width: 110,
+                height: 30
+            }
+        });
+
+        function initMermaid(s) {
+            var diagrams = document.querySelectorAll('.mermaid');
+            var i;
+            for (i = 0; i < diagrams.length; i++) {
+                if (diagrams[i].offsetWidth > 0) {
+                    mermaid.init(undefined, diagrams[i]);
+                }
+            }
+        }
+
+        slideshow.on('afterShowSlide', initMermaid);
+        initMermaid(slideshow.getSlides()[slideshow.getCurrentSlideIndex()]);
+
+
+        // === Emojify.js initialization ===
+        emojify.run();
+
+        // === Cinescript initialization ===
+        $(document).ready(init_cinescripts);
+
+        renderMathInElement(document.body, {
+            delimiters: [{ left: "$$", right: "$$", display: true }, {
+                left: "\\(",
+                right: "\\)",
+                display: false
+            }], ignoredTags: []
+        });
+
+    </script>
+</body>
+
+</html>
