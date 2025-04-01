@@ -71,11 +71,32 @@ class: middle
 # II - Field generator - Structure de la base de donnée
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+.noflex[
+Use **`![](image.png)`**
+
+.block.rightf.w20.animated.fadeInRight.wait1s[ ![](images/database.png).hcenter[Wikipedia logo] ]
+
 ---
 class: middle
-# II - Field generator - Utilisation de la base de donnée
+# II - Field generator - interaction avec la base de donnée
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+```python3
+def PutMatrixInDB(experienceName, experienceHash, time, psiRe, psiIm, potential):
+    try:
+        db = client.results
+        matrix = db.matrix
+
+        psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
+        psiImDB = bson.binary.Binary(pickle.dumps(psiIm, protocol = 2))
+        potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
+
+        data = { "Experience": experienceName, "Hash": experienceHash, "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB, "Potential": potentialDB }
+        matrix.insert_one(data).inserted_id
+
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+```
 
 ---
 class: middle
