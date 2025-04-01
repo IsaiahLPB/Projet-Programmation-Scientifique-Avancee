@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>IPS / PSA</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" type="text/css" href="core/fonts/mono.css">
+    <link rel="stylesheet" type="text/css" href="core/css/animate.css">
+    <link rel="stylesheet" type="text/css" href="core/css/cinescript.css">
+    <link rel="stylesheet" type="text/css" href="core/css/style_core.css">
+    <link rel="stylesheet" type="text/css" href="core/css/mermaid.css">
+    <link rel="stylesheet" type="text/css" href="core/css/gitgraph.css">
+    <link rel="stylesheet" type="text/css" href="core/css/style_ensiie.css">
+    <link rel="stylesheet" type="text/css" href="core/css/katex.css">
+</head>
+
+<body>
+    <textarea id="source" readonly>
+
+class: middle
+
+# Projet PRSA
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+I. [Introduction au projet](index.html#)
+
+1. Présentation du problème
+
+II. [Field generator](index.html#)
+
+1. Fichier d'entrée JSON
+2. Différents potentiels implémentés
+3. Structure de la base de donnée
+4. Utilisation de la base de donnée
+
+III. [Solveur Implémentation](index.html#)
+    
+1. Matrices complexes
+2. Implémentation des méthodes de résolution
+3. Bindings python
+
+IV. [Post Processor](index.html#8)
+
+1. Idée d'implémentation
+
+---
+class: middle
+# I - Introduction au projet - Présentation du problème
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+### Problématique
+Le projet consiste à réaliser un solveur d'équations de Schrödinger en 2D pour simuler le comportement d'une onde quantique dans un potentiel donné.
+
+Le projet doit implémenter les programmes FTCS, BTCS et CTCS.
+
+---
+class: middle
+# II - Field generator - Fichier d'entrée JSON
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il souhaite réaliser.
+
+#### Dans consts.json :
+```json
+{
+    "constantes": {
+        "n_x": 101,
+        "n_y": 101,
+        "x_min": -10,
+        "x_max": 10,
+        "y_min": -10,
+        "y_max": 10,
+        "h": 1,
+        "m": 1,
+        "w": 1,
+        "k_x": 0,
+        "k_y": 0,
+        "dt": [
+            0.000025,
+            0.0005,
+            0.005
+        ]
+    },
+    "paramètres utilisateurs": {
+        "psi": 0,
+        "V": 0,
+        "image_V": "/path/to/image",
+        "t_max": 10
+    }
+}
+```
+
+---
+class: middle
+# II - Field generator - Fonctionnement du main
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Fonctionnement global du field generator.
+
+#### Dans main.py
+```python
+def main():
+	v = consts["paramètres utilisateurs"]["V"]
+	# Calculate the potential according to the V value :
+	Vmat = calcV()
+	# Plot the potential
+	plotV()
+	# Calculate the wave function according to the psi value :
+	psi0 = calcPsi()
+	# Plot the wave function
+	# Calculate the hash of the experiment
+	# Send the data in the database if the experiment is not already done
+```
+
+
+---
+class: middle
+# II - Field generator - Différents potentiels implémentés
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans main.py
+
+```python
+# Initialize the potential grid
+Vmat = [[0 for i in range(n_x)] for j in range(n_y)]
+
+# Calculate the potential centered in (0, 0) at each point in the grid following this equation:
+# V = (x² + y²) / 9
+def calcHarmV():
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	for i in range(n_x//2+1):
+		for j in range(n_y//2+1):
+			Vmat[i][j] = (x[i]**2 + y[j]**2) / 9
+			Vmat[i][n_y - j - 1] = Vmat[i][j]
+			Vmat[n_x - i - 1][j] = Vmat[i][j]
+			Vmat[n_x - i - 1][n_y - j - 1] = Vmat[i][j]
+	return Vmat
+
+def calcV(v):
+	match v:
+		case 0:
+			print("Not implemented yet, will use the image given in the consts.JSON file to create the potential")
+		case 1:
+			return Vmat
+		case 2:
+			return calcHarmV()
+		case _:
+			print("Not a valid value for v")
+```
+
+---
+class: middle
+# II - Field generator - Différents Psi_0 calculés
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans main.py
+
+```python
+def calcGaussPsi0Re():
+	A = np.sqrt(2 / np.pi * (w**2))
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	psi0Re = np.zeros((n_x, n_y))
+	for i in range(n_x):
+		for j in range(n_y):
+			psi0Re[i][j] = A * np.exp(- (x[i]**2 + y[j]**2) / (2 * w**2)) * np.cos(kx * x[i] + ky * y[j])
+	return psi0Re
+
+def calcGaussPsi0Im():
+	A = np.sqrt(2 / np.pi * (w**2))
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	psi0Im = np.zeros((n_x, n_y))
+	for i in range(n_x):
+		for j in range(n_y):
+			psi0Im[i][j] = A * np.exp(- (x[i]**2 + y[j]**2) / (2 * w**2)) * np.sin(kx * x[i] + ky * y[j])
+	return psi0Im
+```
+
+---
+class: middle
+# II - Field generator - Mécanisme de reprise de calcul
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Travail encore à réaliser
+
+Il faut encore implémenter le mécanisme de reprise de calcul. Pour cela, il faut que le field generator puisse envoyer les données dans une base de donnée et que l'on vérifie si l'expérience n'a pas déjà été réalisée.
+
+Si elle a déjà été réalisée en entier, on affichera le résultat de l'expérience sans avoir à refaire le calcul.
+Si elle n'a pas été réalisée dans sa totalité, on continuera le calcul à partir de la dernière valeur de psi enregistrée dans la base de donnée.
+
+Pour savoir si l'expérience a déjà été réalisée, on peut utilisera le hash de l'expérience que l'on déterminera à partir des paramètres initiaux de l'expérience.
+
+---
+class: middle
+# II - Field generator - Structure de la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Une expérience correspond à un document dans la base de donnée
+<iframe src="./images/database.png" width="100%" height="470px"></iframe>
+
+---
+class: middle
+# II - Field generator - interaction avec la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```python3
+def PutMatrixInDB(experienceName, experienceHash, time, psiRe, psiIm, potential):
+    try:
+        db = client.results
+        matrix = db.matrix
+
+        psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
+        psiImDB = bson.binary.Binary(pickle.dumps(psiIm, protocol = 2))
+        potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
+
+        data = { "Experience": experienceName, "Hash": experienceHash, "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB, "Potential": potentialDB }
+        matrix.insert_one(data).inserted_id
+
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+```
+
+---
+class: middle
+# II - Field generator - interaction avec la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```
+{
+    _id: ObjectId('67ec131da547f2eb8bffd316'),
+    Experience: 'example with matrixes',
+    Hash: 2,
+    Time: 0,
+    Psi_Real: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEsAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD9xEWgFhnESUnETdHEUYi4=', 0),
+    Psi_Imaginary: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBxEWgFhnESUnETdHEUYi4=', 0),
+    Potential: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEBxEWgFhnESUnETdHEUYi4=', 0)
+}
+```
+
+---
+class: middle
+# III - Solveur - Matrices complexes
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans complex_mat.h
+```cpp
+typedef struct complex_mat
+{
+  mat re;
+  mat im;
+}complex_mat;
+```
+
+#### Dans complex_mat.cpp
+```cpp
+complex_mat init_c_mat(uword n, uword m)
+{
+  complex_mat M;
+  M.re.zeros(n, m);
+  M.im.zeros(n, m);
+  return M;
+}
+
+ComplexMat::ComplexMat(mat re_val, mat im_val)
+{
+  complex_mat M;
+  M.re = re_val;
+  M.im = im_val;
+}
+```
+
+---
+class: middle
+# III - Solveur - Implémentation des méthodes de résolution
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans solver.cpp
+```cpp
+complex_mat Solver::FTCS_derivation(complex_mat psi_t)
+{
+  complex_mat psi_t_dt = init_c_mat(nx, ny);
+
+  double dt = dt_vals[0];
+  int dx = (x_max - x_min) / nx;
+  int dy = (y_max - y_min) / ny;
+
+  for(uword i = 1; i < nx-1; ++i)
+  {
+    for(uword j = 1; j < ny-1; ++j)
+    {
+      double A = ((-1/h_bar)*V(i,j) - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
+      double B = (h_bar/2*m);
+      double psi_x_im = psi_t.im(i+1,j) + psi_t.im(i-1,j);
+      double psi_y_im = psi_t.im(i,j+1) + psi_t.im(i,j-1);
+      double psi_x_re = psi_t.re(i+1,j) + psi_t.re(i-1,j);
+      double psi_y_re = psi_t.re(i,j+1) + psi_t.re(i,j-1);
+
+      psi_t_dt.re(i,j) = psi_t.re(i,j) - dt * (A * psi_t.im(i,j) + B * ((1/dx*dx) * psi_x_im + (1/dy*dy) * psi_y_im));
+      psi_t_dt.im(i,j) = psi_t.im(i,j) + dt * (A * psi_t.re(i,j) + B * ((1/dx*dx) * psi_x_re + (1/dy*dy) * psi_y_re));
+    }
+  }
+  return psi_t_dt;
+}
+```
+
+---
+class: middle
+# III - Solveur - Résulats FCTS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+Gaussienne et potentiel harmonique
+<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
+    <source src="videos/FTCS_video.mp4" type="video/webm" />
+    </video>
+
+---
+class: middle
+# III - Solveur - Résulats BCTS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+Gaussienne et potentiel harmonique
+<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
+    <source src="videos/BTCS_video.mp4" type="video/webm" />
+    </video>
+
+---
+class: middle
+# III - Solveur - Bindings python
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans solver.i
+```cpp
+%module solver
+%{
+#include "../include/solver.h"
+#include "../include/complexmat.h"
+%}
+%include "../include/solver.h"
+%include "../include/complexmat.h"
+
+```
+#### Dans setup.py
+```cpp
+from setuptools import setup, Extension
+
+module1 = Extension('_solver', sources=['solver.i','../src/solver.cpp', '../src/complexmat.cpp'], swig_opts=["-c++"])
+
+setup(name='package_solver',
+      py_modules=['solver'],
+      version='1.0',
+      description="This package implements the solver's functions",
+      ext_modules=[module1])
+
+```
+
+---
+class: middle
+# IV - Post processor -
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+## Cette partie n'a pas encore été traitée.
+
+Voici cependant nos axes de réflexions :
+
+1. extractions des matrices d'une expérience dans la base de donnée
+
+2. convertion de chaque matrice en image
+
+3. création d'une vidéo à partir des images obtenues
+
+
+    </textarea>
+
+    <script src="core/javascript/remark.js"></script>
+    <script src="core/javascript/katex.min.js"></script>
+    <script src="core/javascript/auto-render.min.js"></script>
+    <script src="core/javascript/emojify.js"></script>
+    <script src="core/javascript/mermaid.js"></script>
+    <script src="core/javascript/term.js"></script>
+    <script src="core/javascript/jquery-2.1.1.min.js"></script>
+    <script src="core/javascript/extend-jquery.js"></script>
+    <script src="core/javascript/cinescript.js"></script>
+    <script src="core/javascript/gitgraph.js"></script>
+    <script>
+
+        // === Remark.js initialization ===
+        var slideshow = remark.create({
+            highlightStyle: 'monokai',
+            countIncrementalSlides: false,
+            highlightLines: false
+        });
+
+        // === Mermaid.js initialization ===
+        mermaid.initialize({
+            startOnLoad: false,
+            cloneCssStyles: false,
+            flowchart: {
+                height: 50
+            },
+            sequenceDiagram: {
+                width: 110,
+                height: 30
+            }
+        });
+
+        function initMermaid(s) {
+            var diagrams = document.querySelectorAll('.mermaid');
+            var i;
+            for (i = 0; i < diagrams.length; i++) {
+                if (diagrams[i].offsetWidth > 0) {
+                    mermaid.init(undefined, diagrams[i]);
+                }
+            }
+        }
+
+        slideshow.on('afterShowSlide', initMermaid);
+        initMermaid(slideshow.getSlides()[slideshow.getCurrentSlideIndex()]);
+
+
+        // === Emojify.js initialization ===
+        emojify.run();
+
+        // === Cinescript initialization ===
+        $(document).ready(init_cinescripts);
+
+        renderMathInElement(document.body, {
+            delimiters: [{ left: "$$", right: "$$", display: true }, {
+                left: "\\(",
+                right: "\\)",
+                display: false
+            }], ignoredTags: []
+        });
+
+    </script>
+</body>
+
+</html>
