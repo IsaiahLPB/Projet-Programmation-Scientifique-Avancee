@@ -1,0 +1,26 @@
+{
+    "constantes": {
+        "n_x": 101,
+        "n_y": 101,
+        "x_min": -10,
+        "x_max": 10,
+        "y_min": -10,
+        "y_max": 10,
+        "h": 1,
+        "m": 1,
+        "w": 1,
+        "k_x": 0,
+        "k_y": 0,
+        "dt": [
+            0.000025,
+            0.0005,
+            0.005
+        ]
+    },
+    "paramètres utilisateurs": {
+        "psi": 0,
+        "V": 0,
+        "image_V": "/path/to/image",
+        "t_max": 10
+    }
+}
