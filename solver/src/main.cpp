@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 		{
 			psi_t = solver.FTCS_derivation(psi_t);
 			if(i%10000 == 0)
-			{
+			{ 
 				filename_re.str("");
 				filename_im.str("");
 				filename_re << "data/FTCS_psi_" << i << "_re.csv";

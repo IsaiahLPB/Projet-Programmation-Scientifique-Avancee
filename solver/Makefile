@@ -40,8 +40,7 @@ run: $(TARGET)
 	python3 display.py 1
 
 bindings:
-	python setup.py build
-	python setup.py install
+	make -C swig/
 
 clean_data:
 	rm -f data/*

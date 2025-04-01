@@ -3,9 +3,7 @@
 #include "../include/complexmat.h"
 #include "../include/solver.h"
 
-using namespace arma;
-
-complex_mat init_c_mat(uword n, uword m)
+complex_mat init_c_mat(arma::uword n, arma::uword m)
 {
 	complex_mat M;
   M.re.zeros(n, m);
@@ -13,19 +11,19 @@ complex_mat init_c_mat(uword n, uword m)
   return M;
 }
 
-ComplexMat::ComplexMat(mat re_val, mat im_val)
+ComplexMat::ComplexMat(arma::mat re_val, arma::mat im_val)
 {
   complex_mat M;
   M.re = re_val;
   M.im = im_val;
 }
 
-mat ComplexMat::Re(complex_mat M)
+arma::mat ComplexMat::Re(complex_mat M)
 {
 	return M.re;
 }
 
-mat ComplexMat::Im(complex_mat M)
+arma::mat ComplexMat::Im(complex_mat M)
 {
 	return M.im;
 }

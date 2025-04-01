@@ -1,0 +1,9 @@
+setup.py
+solver.i
+solver.py
+../src/complexmat.cpp
+../src/solver.cpp
+package_solver.egg-info/PKG-INFO
+package_solver.egg-info/SOURCES.txt
+package_solver.egg-info/dependency_links.txt
+package_solver.egg-info/top_level.txt

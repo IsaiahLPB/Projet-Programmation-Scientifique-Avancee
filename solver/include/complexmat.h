@@ -3,22 +3,20 @@
 
 #include <armadillo>
 
-using namespace arma;
-
 typedef struct complex_mat
 {
-  mat re;
-  mat im;
+  arma::mat re;
+  arma::mat im;
 }complex_mat;
 
-complex_mat init_c_mat(uword, uword);
+complex_mat init_c_mat(arma::uword, arma::uword);
 
 class ComplexMat
 {
 public:
-  ComplexMat(mat, mat);
-  mat Re(complex_mat);
-  mat Im(complex_mat);
+  ComplexMat(arma::mat, arma::mat);
+  arma::mat Re(complex_mat);
+  arma::mat Im(complex_mat);
 };
 
 #endif
