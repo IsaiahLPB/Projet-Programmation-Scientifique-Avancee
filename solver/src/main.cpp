@@ -42,34 +42,22 @@ int main(int argc, char* argv[])
 		for(uword j = 0; j < nx; ++j) {
 			double x = x_vec(i);
 			double y = y_vec(j);
-			// Double-well along x-axis (where your Gaussians are positioned)
-			//solver.V(i,j) = 0.1 * ((x*x - 9.0)*(x*x - 9.0) + 2.0*y*y);
 			solver.V(i,j) = (x*x + y*y)/9;
 		}
 	}
 
 	// Initialization of psi
 	double sigma = 2.0;
-	double k = 1.5;  // Momentum magnitude
-	double x1 = -3.0, y1 = 0.0;  // Position of first packet
-	double x2 = 3.0, y2 = 0.0;   // Position of second packet
-
 	for(uword i = 0; i < nx; ++i) {
 		for(uword j = 0; j < nx; ++j) {
 			double x = x_vec(i);
 			double y = y_vec(j);
 			
-			// First wave packet moving right
-			double gauss1 = exp(-((x-x1)*(x-x1) + (y-y1)*(y-y1)) / (2 * sigma * sigma));
-			double phase1 = k * x;
-			
-			// Second wave packet moving left
-			double gauss2 = exp(-((x-x2)*(x-x2) + (y-y2)*(y-y2)) / (2 * sigma * sigma));
-			double phase2 = -k * x;
-			
-			// Superposition
-			psi_0.re(i, j) = gauss1 * cos(phase1) + gauss2 * cos(phase2);
-			psi_0.im(i, j) = gauss1 * sin(phase1) + gauss2 * sin(phase2);
+			double gauss = exp(-(x * x + y * y) / (2 * sigma * sigma));
+            double theta = atan2(y, x); // Angle de phase
+
+            psi_0.re(i, j) = gauss * cos(theta);
+            psi_0.im(i, j) = gauss * sin(theta);
 		}
 	}
 
