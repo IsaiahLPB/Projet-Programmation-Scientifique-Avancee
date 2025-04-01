@@ -71,10 +71,8 @@ class: middle
 # II - Field generator - Structure de la base de donnée
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-.noflex[
-Use **`![](image.png)`**
-
-.block.rightf.w20.animated.fadeInRight.wait1s[ ![](images/database.png).hcenter[Wikipedia logo] ]
+Une expérience correspond à un document dans la base de donnée
+<iframe src="./images/database.png" width="100%" height="470px"></iframe>
 
 ---
 class: middle
@@ -185,11 +183,54 @@ complex_mat Solver::FTCS_derivation(complex_mat psi_t)
   return psi_t_dt;
 }
 ```
+
+---
+class: middle
+# III - Solveur - Résulats FCTS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+Gaussienne et potentiel harmonique
+<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
+    <source src="videos/FTCS_video.mp4" type="video/webm" />
+    </video>
+
+---
+class: middle
+# III - Solveur - Résulats BCTS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+Gaussienne et potentiel harmonique
+<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
+    <source src="videos/BTCS_video.mp4" type="video/webm" />
+    </video>
+
 ---
 class: middle
 # III - Solveur - Bindings python
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+#### Dans solver.i
+```cpp
+%module solver
+%{
+#include "../include/solver.h"
+#include "../include/complexmat.h"
+%}
+%include "../include/solver.h"
+%include "../include/complexmat.h"
+
+```
+#### Dans setup.py
+```cpp
+from setuptools import setup, Extension
+
+module1 = Extension('_solver', sources=['solver.i','../src/solver.cpp', '../src/complexmat.cpp'], swig_opts=["-c++"])
+
+setup(name='package_solver',
+      py_modules=['solver'],
+      version='1.0',
+      description="This package implements the solver's functions",
+      ext_modules=[module1])
+
+```
 
 ---
 class: middle
