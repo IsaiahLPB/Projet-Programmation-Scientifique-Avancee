@@ -41,7 +41,7 @@ III. [Solveur Implémentation](index.html#)
 
 IV. [Post Processor](index.html#8)
 
-    1.
+    1. Idée d'implémentation
 
 ---
 class: middle
@@ -197,11 +197,47 @@ class: middle
 # II - Field generator - Structure de la base de donnée
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+Une expérience correspond à un document dans la base de donnée
+<iframe src="./images/database.png" width="100%" height="470px"></iframe>
+
 ---
 class: middle
-# II - Field generator - Utilisation de la base de donnée
+# II - Field generator - interaction avec la base de donnée
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+```python3
+def PutMatrixInDB(experienceName, experienceHash, time, psiRe, psiIm, potential):
+    try:
+        db = client.results
+        matrix = db.matrix
+
+        psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
+        psiImDB = bson.binary.Binary(pickle.dumps(psiIm, protocol = 2))
+        potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
+
+        data = { "Experience": experienceName, "Hash": experienceHash, "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB, "Potential": potentialDB }
+        matrix.insert_one(data).inserted_id
+
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+```
+
+---
+class: middle
+# II - Field generator - interaction avec la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```
+{
+    _id: ObjectId('67ec131da547f2eb8bffd316'),
+    Experience: 'example with matrixes',
+    Hash: 2,
+    Time: 0,
+    Psi_Real: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEsAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD9xEWgFhnESUnETdHEUYi4=', 0),
+    Psi_Imaginary: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBxEWgFhnESUnETdHEUYi4=', 0),
+    Potential: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEBxEWgFhnESUnETdHEUYi4=', 0)
+}
+```
 
 ---
 class: middle
@@ -273,21 +309,70 @@ complex_mat Solver::FTCS_derivation(complex_mat psi_t)
   return psi_t_dt;
 }
 ```
+
+---
+class: middle
+# III - Solveur - Résulats FCTS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+Gaussienne et potentiel harmonique
+<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
+    <source src="videos/FTCS_video.mp4" type="video/webm" />
+    </video>
+
+---
+class: middle
+# III - Solveur - Résulats BCTS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+Gaussienne et potentiel harmonique
+<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
+    <source src="videos/BTCS_video.mp4" type="video/webm" />
+    </video>
+
 ---
 class: middle
 # III - Solveur - Bindings python
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+#### Dans solver.i
+```cpp
+%module solver
+%{
+#include "../include/solver.h"
+#include "../include/complexmat.h"
+%}
+%include "../include/solver.h"
+%include "../include/complexmat.h"
+
+```
+#### Dans setup.py
+```cpp
+from setuptools import setup, Extension
+
+module1 = Extension('_solver', sources=['solver.i','../src/solver.cpp', '../src/complexmat.cpp'], swig_opts=["-c++"])
+
+setup(name='package_solver',
+      py_modules=['solver'],
+      version='1.0',
+      description="This package implements the solver's functions",
+      ext_modules=[module1])
+
+```
 
 ---
 class: middle
 # IV - Post processor -
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
----
-class: middle
-# IV - Post processor -
-.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+## Cette partie n'a pas encore été traitée.
+
+Voici cependant nos axes de réflexions :
+
+1. extractions des matrices d'une expérience dans la base de donnée
+
+2. convertion de chaque matrice en image
+
+3. création d'une vidéo à partir des images obtenues
+
 
     </textarea>
 
