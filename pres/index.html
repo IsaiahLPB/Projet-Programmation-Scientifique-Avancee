@@ -32,7 +32,7 @@ II. [Field generator](index.html#)
     1. Fichier d'entré JSON
     2. Différents potentiels implémentés
     3. Structure de la base de donnée
-    4. Utilisation de la base de donnée
+    4. Interaction avec la base de donnée
 
 III. [Solveur Implémentation](index.html#)
     
@@ -96,6 +96,23 @@ def PutMatrixInDB(experienceName, experienceHash, time, psiRe, psiIm, potential)
 
     except pymongo.errors.OperationFailure as e:
         print("ERROR: %s" % (e))
+```
+
+---
+class: middle
+# II - Field generator - interaction avec la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```
+{
+    _id: ObjectId('67ec131da547f2eb8bffd316'),
+    Experience: 'example with matrixes',
+    Hash: 2,
+    Time: 0,
+    Psi_Real: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEsAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD9xEWgFhnESUnETdHEUYi4=', 0),
+    Psi_Imaginary: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBxEWgFhnESUnETdHEUYi4=', 0),
+    Potential: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEBxEWgFhnESUnETdHEUYi4=', 0)
+}
 ```
 
 ---
@@ -178,6 +195,16 @@ class: middle
 class: middle
 # IV - Post processor -
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+## Cette partie n'a pas encore été traitée.
+
+Voici cependant nos axes de réflexions :
+
+1. extractions des matrices d'une expérience dans la base de donnée
+
+2. convertion de chaque matrice en image
+
+3. création d'une vidéo à partir des images obtenues
 
 ---
 class: middle
