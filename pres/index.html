@@ -22,49 +22,175 @@ class: middle
 # Projet PRSA
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-I. [Introduction au projet](index.html#) 
+I. [Introduction au projet](index.html#)
 
     1. Présentation du problème
-    2. Objectifs
 
 II. [Field generator](index.html#)
 
-    1. Fichier d'entré JSON
+    1. Fichier d'entrée JSON
     2. Différents potentiels implémentés
     3. Structure de la base de donnée
     4. Utilisation de la base de donnée
 
 III. [Solveur Implémentation](index.html#)
     
-    1. Résolution mathématique
-    2. Matrices complexes
-    3. Implémentation des méthodes de résolution
-    4. Bindings python
+    1. Matrices complexes
+    2. Implémentation des méthodes de résolution
+    3. Bindings python
 
 IV. [Post Processor](index.html#8)
 
-    1. 
+    1.
 
 ---
 class: middle
 # I - Introduction au projet - Présentation du problème
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+### Problématique
+Le projet consiste à réaliser un solveur d'équations de Schrödinger en 2D pour simuler le comportement d'une onde quantique dans un potentiel donné.
+
+Le projet doit implémenter les programmes FTCS, BTCS et CTCS.
+
 ---
 class: middle
-# I - Introduction au projet - Objectifs
+# II - Field generator - Fichier d'entrée JSON
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il souhaite réaliser.
+
+#### Dans consts.json :
+```json
+{
+    "constantes": {
+        "n_x": 101,
+        "n_y": 101,
+        "x_min": -10,
+        "x_max": 10,
+        "y_min": -10,
+        "y_max": 10,
+        "h": 1,
+        "m": 1,
+        "w": 1,
+        "k_x": 0,
+        "k_y": 0,
+        "dt": [
+            0.000025,
+            0.0005,
+            0.005
+        ]
+    },
+    "paramètres utilisateurs": {
+        "psi": 0,
+        "V": 0,
+        "image_V": "/path/to/image",
+        "t_max": 10
+    }
+}
+```
 
 ---
 class: middle
-# II - Field generator - Fichier d'entré JSON
+# II - Field generator - Fonctionnement du main
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Fonctionnement global du field generator.
+
+#### Dans main.py
+```python
+def main():
+	v = consts["paramètres utilisateurs"]["V"]
+	# Calculate the potential according to the V value :
+	Vmat = calcV()
+	# Plot the potential
+	plotV()
+	# Calculate the wave function according to the psi value :
+	psi0 = calcPsi()
+	# Plot the wave function
+	# Calculate the hash of the experiment
+	# Send the data in the database if the experiment is not already done
+```
+
 
 ---
 class: middle
 # II - Field generator - Différents potentiels implémentés
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans main.py
+
+```python
+# Initialize the potential grid
+Vmat = [[0 for i in range(n_x)] for j in range(n_y)]
+
+# Calculate the potential centered in (0, 0) at each point in the grid following this equation:
+# V = (x² + y²) / 9
+def calcHarmV():
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	for i in range(n_x//2+1):
+		for j in range(n_y//2+1):
+			Vmat[i][j] = (x[i]**2 + y[j]**2) / 9
+			Vmat[i][n_y - j - 1] = Vmat[i][j]
+			Vmat[n_x - i - 1][j] = Vmat[i][j]
+			Vmat[n_x - i - 1][n_y - j - 1] = Vmat[i][j]
+	return Vmat
+
+def calcV(v):
+	match v:
+		case 0:
+			print("Not implemented yet, will use the image given in the consts.JSON file to create the potential")
+		case 1:
+			return Vmat
+		case 2:
+			return calcHarmV()
+		case _:
+			print("Not a valid value for v")
+```
+
+---
+class: middle
+# II - Field generator - Différents Psi_0 calculés
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans main.py
+
+```python
+def calcGaussPsi0Re():
+	A = np.sqrt(2 / np.pi * (w**2))
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	psi0Re = np.zeros((n_x, n_y))
+	for i in range(n_x):
+		for j in range(n_y):
+			psi0Re[i][j] = A * np.exp(- (x[i]**2 + y[j]**2) / (2 * w**2)) * np.cos(kx * x[i] + ky * y[j])
+	return psi0Re
+
+def calcGaussPsi0Im():
+	A = np.sqrt(2 / np.pi * (w**2))
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	psi0Im = np.zeros((n_x, n_y))
+	for i in range(n_x):
+		for j in range(n_y):
+			psi0Im[i][j] = A * np.exp(- (x[i]**2 + y[j]**2) / (2 * w**2)) * np.sin(kx * x[i] + ky * y[j])
+	return psi0Im
+```
+
+---
+class: middle
+# II - Field generator - Mécanisme de reprise de calcul
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Travail encore à réaliser
+
+Il faut encore implémenter le mécanisme de reprise de calcul. Pour cela, il faut que le field generator puisse envoyer les données dans une base de donnée et que l'on vérifie si l'expérience n'a pas déjà été réalisée.
+
+Si elle a déjà été réalisée en entier, on affichera le résultat de l'expérience sans avoir à refaire le calcul.
+Si elle n'a pas été réalisée dans sa totalité, on continuera le calcul à partir de la dernière valeur de psi enregistrée dans la base de donnée.
+
+Pour savoir si l'expérience a déjà été réalisée, on peut utilisera le hash de l'expérience que l'on déterminera à partir des paramètres initiaux de l'expérience.
 
 ---
 class: middle
@@ -127,7 +253,7 @@ complex_mat Solver::FTCS_derivation(complex_mat psi_t)
 
   double dt = dt_vals[0];
   int dx = (x_max - x_min) / nx;
-  int dy = (y_max - y_min) / ny;  
+  int dy = (y_max - y_min) / ny;
 
   for(uword i = 1; i < nx-1; ++i)
   {
