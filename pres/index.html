@@ -22,30 +22,69 @@ class: middle
 # Projet PRSA
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-I. [Introduction au problème](index.html#2) 
+I. [Introduction au projet](index.html#) 
 
-    1.
-    2.
+    1. Présentation du problème
+    2. Objectifs
 
-II. [Résolution du problème](index.html#4)
+II. [Field generator](index.html#)
+
+    1. Fichier d'entré JSON
+    2. Différents potentiels implémentés
+    3. Structure de la base de donnée
+    4. Utilisation de la base de donnée
+
+III. [Solveur Implémentation](index.html#)
     
     1. Résolution mathématique
-    2. Présentation du solveur
+    2. Matrices complexes
+    3. Implémentation des méthodes de résolution
+    4. Bindings python
 
-III. [](index.html#8)
+IV. [Post Processor](index.html#8)
 
-    1.
-    2.
+    1. 
 
 ---
 class: middle
-# I - Introduction - Présentation du problème
+# I - Introduction au projet - Présentation du problème
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+---
+class: middle
+# I - Introduction au projet - Objectifs
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 
 ---
 class: middle
-# II - Implémentation - Définition des matrices complexes
+# II - Field generator - Fichier d'entré JSON
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+---
+class: middle
+# II - Field generator - Différents potentiels implémentés
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+---
+class: middle
+# II - Field generator - Structure de la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+---
+class: middle
+# II - Field generator - Utilisation de la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+
+---
+class: middle
+# III - Solveur - Résolution mathématique
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+---
+class: middle
+# III - Solveur - Matrices complexes
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans complex_mat.h
@@ -77,7 +116,7 @@ ComplexMat::ComplexMat(mat re_val, mat im_val)
 
 ---
 class: middle
-# II - Implémentation - Méthode FTCS
+# III - Solveur - Implémentation des méthodes de résolution
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans solver.cpp
@@ -108,12 +147,21 @@ complex_mat Solver::FTCS_derivation(complex_mat psi_t)
   return psi_t_dt;
 }
 ```
+---
+class: middle
+# III - Solveur - Bindings python
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
 
 ---
 class: middle
-# III
+# IV - Post processor -
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
+---
+class: middle
+# IV - Post processor -
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
     </textarea>
 
