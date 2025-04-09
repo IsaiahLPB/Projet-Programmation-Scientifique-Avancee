@@ -1,6 +1,5 @@
 import solver
 import numpy as np
-import ComplexMat
 import math
 import sys
 
@@ -24,8 +23,8 @@ for i in range (0, nx):
 		V[i,j] = (x*x + y*y)/9
 
 # Definition of psi_0 (will be retrived in the DB)
-re = np.zeros((nx,ny))
-im = np.zeros((nx,ny))
+psi_real = np.zeros((nx,ny))
+psi_imag = np.zeros((nx,ny))
 sigma = 2.0
 for i in range (0, nx):
 	for j in range(0, ny):
@@ -35,11 +34,9 @@ for i in range (0, nx):
 		gauss = math.exp(-(x * x + y * y) / (2 * sigma * sigma))
 		theta = math.atan2(y, x) # Angle de phase
 
-		re[i, j] = gauss * math.cos(theta)
-		im[i, j] = gauss * math.sin(theta)
-psi_0 = ComplexMat.ComplexMat(re, im)
+		psi_real[i, j] = gauss * math.cos(theta)
+		psi_imag[i, j] = gauss * math.sin(theta)
 
-solver = solver.Solver()
 
 if(len(sys.argv) != 2):
 	print("Error: usage <int>")
@@ -47,44 +44,49 @@ methode_id = int(sys.argv[1])
 assert(methode_id <= 2)
 assert(methode_id >= 0)
 
+V = np.asfortranarray(V)
+psi_real = np.asfortranarray(psi_real)
+psi_imag = np.asfortranarray(psi_imag)
+
+solver = solver.Solver(methode_id, V)
 dt = dt_vals[methode_id]
-psi_t = psi_0
 t = 0
 stepcounter = 0
 match methode_id:
 	case 0:
 		while t < t_max:
-			psi_t = solver.FTCS_derivation(psi_t)
+			solver.FTCS_derivation(psi_real, psi_imag)
 			if stepcounter % 10000 == 0:
 			# Write the files in the DB 
-				re_filename = f"../data/FTCS_psi_{stepcounter}_re.csv"
-				im_filename = f"../data/FTCS_psi_{stepcounter}_im.csv"
-				np.savetxt(re_filename, psi_t.re, delimiter=',')
-				np.savetxt(im_filename, psi_t.im, delimiter=',')
+				re_filename = f"data/FTCS_psi_{stepcounter}_re.csv"
+				im_filename = f"data/FTCS_psi_{stepcounter}_im.csv"
+				np.savetxt(re_filename, psi_real, delimiter=',')
+				np.savetxt(im_filename, psi_imag, delimiter=',')
+				print("File", stepcounter, "written")
 			stepcounter +=1 
 			t += dt
 		print("FTCS completed")
 	case 1:
 		while t < t_max:
-			psi_t = solver.BTCS_derivation(psi_t)
+			solver.BTCS_derivation(psi_real, psi_imag)
 			if stepcounter % 500 == 0:
 			# Write the files in the DB 
-				re_filename = f"../data/BTCS_psi_{stepcounter}_re.csv"
-				im_filename = f"../data/BTCS_psi_{stepcounter}_im.csv"
-				np.savetxt(re_filename, psi_t.re, delimiter=',')
-				np.savetxt(im_filename, psi_t.im, delimiter=',')
+				re_filename = f"data/BTCS_psi_{stepcounter}_re.csv"
+				im_filename = f"data/BTCS_psi_{stepcounter}_im.csv"
+				np.savetxt(re_filename, psi_real, delimiter=',')
+				np.savetxt(im_filename, psi_imag, delimiter=',')
 			stepcounter +=1 
 			t += dt
 		print("BTCS completed")
 	case 2:
 		while t < t_max:
-			psi_t = solver.CTCS_derivation(psi_t)
+			solver.CTCS_derivation(psi_real, psi_imag)
 			if stepcounter % 50 == 0:
 			# Write the files in the DB 
-				re_filename = f"../data/CTCS_psi_{stepcounter}_re.csv"
-				im_filename = f"../data/CTCS_psi_{stepcounter}_im.csv"
-				np.savetxt(re_filename, psi_t.re, delimiter=',')
-				np.savetxt(im_filename, psi_t.im, delimiter=',')
+				re_filename = f"data/CTCS_psi_{stepcounter}_re.csv"
+				im_filename = f"data/CTCS_psi_{stepcounter}_im.csv"
+				np.savetxt(re_filename, psi_real, delimiter=',')
+				np.savetxt(im_filename, psi_imag, delimiter=',')
 			stepcounter +=1 
 			t += dt
 		print("CTCS completed")
