@@ -136,7 +136,7 @@ def visualize_multiple_iterations(iterations=None, base_dir='data/',
     plt.show()
 
 def create_animation(iterations=None, base_dir='data/', 
-                    filename='video/probability_density_animation.mp4', 
+                    filename='videos/probability_density_animation.mp4', 
                     fps=5, colormap='viridis'):
     """
     Create an animation of probability density evolution over iterations
@@ -353,9 +353,9 @@ if __name__ == "__main__":
         if not colormap:
             colormap = "viridis"
         
-        filename = input("Output filename (default=video/probability_density_animation.mp4): ")
+        filename = input("Output filename (default=videos/probability_density_animation.mp4): ")
         if not filename:
-            filename = "video/probability_density_animation.mp4"
+            filename = "videos/probability_density_animation.mp4"
         
         create_animation(iterations=selected_iterations, fps=fps, colormap=colormap, filename=filename)
         print(f"\nAnimation created as '{filename}'")
