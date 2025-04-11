@@ -10,17 +10,19 @@
         "m": 1,
         "w": 1,
         "k_x": 0,
-        "k_y": 0,
-        "dt": [
-            0.000025,
-            0.0005,
-            0.005
-        ]
+        "k_y": 0
     },
     "paramètres utilisateurs": {
-        "psi": 0,
+        "psi": {
+            "type": 0,
+            "nb": 1,
+            "2DH0_nx": 3,
+            "2DH0_ny": 4
+        },
         "V": 0,
         "image_V": "/path/to/image",
+        "method": 1,
+        "dt": "default",
         "t_max": 10
     }
 }
