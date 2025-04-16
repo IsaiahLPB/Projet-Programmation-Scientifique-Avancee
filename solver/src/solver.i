@@ -21,8 +21,10 @@
 %{
 #define SWIG_FILE_WITH_INIT
 #include "../include/solver.h"
+#include "../include/TimeStepInfo.h"
 %}
 
 %include "armanpy.i"
 
 %include "../include/solver.h"
+%include "../include/TimeStepInfo.h"
