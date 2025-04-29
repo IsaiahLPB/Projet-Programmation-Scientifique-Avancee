@@ -8,6 +8,6 @@ use results
 
 db.createUser({ user: "user0", pwd: "pwd0", roles: ["dbAdmin"]})
 
-# If you want to see what is in your DB
+# If you want to see what is in your collection
 
-db.matrix.find()
+db.experienceName.find()
