@@ -49,7 +49,7 @@ def InsertMatrix(experienceName, time, psiRe, psiIm):
             psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
             psiImDB = bson.binary.Binary(pickle.dumps(psiIm, protocol = 2))
 
-            data = { "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB }
+            data = { "Init": False, "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB }
             experience.insert_one(data)
         else:
             print(experienceName + " doesn't exist, create it before inserting data")
@@ -89,15 +89,41 @@ def GetJsonFile(experienceName):
 
 def GetLastState(experienceName):
     try:
-        experience = db[experienceName]
+        if AlreadyExist(experienceName, db.list_collection_names()):
+            experience = db[experienceName]
 
+            lastTime = -1
+            for data in experience.find({"Init": False}):
+                if data["Time"] > lastTime:
+                    lastTime = data["Time"]
+                    psiReData = data["Psi_Real"]
+                    psiRe = pickle.loads(psiReData)
+                    psiImData = data["Psi_Imaginary"]
+                    psiIm = pickle.loads(psiImData)
+
+            return (lastTime, psiRe, psiIm)
+        else:
+            print(experienceName + " doesn't exist, cannot get the last state of a non existing experience")
     except pymongo.errors.OperationFailure as e:
         print("ERROR: %s" % (e))
 
 def GetStates(experienceName):
     try:
-        experience = db[experienceName]
+        if AlreadyExist(experienceName, db.list_collection_names()):
+            experience = db[experienceName]
 
+            stateList = []
+            for data in experience.find({"Init": False}):
+                time = data["Time"]
+                psiReData = data["Psi_Real"]
+                psiRe = pickle.loads(psiReData)
+                psiImData = data["Psi_Imaginary"]
+                psiIm = pickle.loads(psiImData)
+                stateList.append((time, psiRe, psiIm))
+
+            return stateList
+        else:
+            print(experienceName + " doesn't exist, cannot get the list of states of a non existing experience")
     except pymongo.errors.OperationFailure as e:
         print("ERROR: %s" % (e))
 
@@ -125,8 +151,13 @@ def test():
     #test the cases where getters can't find data in the database
     GetPotential('new')
     GetJsonFile('new')
+    GetLastState('new')
+    GetStates('new')
 
     #test the cases where getters find data in the database
     print(GetPotential('test'))
     print(GetJsonFile('test'))
+    print(GetLastState('test'))
+    print(GetStates('test'))
+
 test()
