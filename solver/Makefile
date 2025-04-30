@@ -11,5 +11,8 @@ run:
 display:
 	../psa_venv/bin/python3 display.py
 
+tests:
+	make -C tests/
+
 clean:
-	rm -f data/*
+	rm -f data/* 

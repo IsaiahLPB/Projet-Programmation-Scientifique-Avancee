@@ -1,6 +1,7 @@
 #include <armadillo>
 #include <complex>
 #include <string>
+#include <omp.h>
 
 #include "../include/json.hpp"
 #include "../include/solver.h"
@@ -40,7 +41,7 @@ Solver::Solver(mat V)
             if (method == "FTCS") {
                 dt = 0.02 / 800;
             } else if (method == "BTCS") {
-                dt = 0.02 / 40;
+                dt = 0.02 / 800;
             } else if (method == "CTCS") {
                 dt = 0.02 / 4;
             } else {
@@ -62,7 +63,6 @@ Solver::Solver(mat V)
         throw std::runtime_error("Champ 'dt' invalide");
     }
 
-
 	dx = (x_max - x_min) / (nx - 1);
 	dy = (y_max - y_min) / (ny - 1);
 
@@ -73,55 +73,142 @@ Solver::Solver(mat V)
 	A = ((-1/h_bar) * V_inner - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
 	coef_x = h_bar / (2 * m * dx * dx);
    	coef_y = h_bar / (2 * m * dy * dy);
+
+    nx_1 = nx-1;
+    ny_1 = ny-1;
+    nx_2 = nx-2;
+    ny_2 = ny-2;
+    nx_3 = nx-3;
+    ny_3 = ny-3;
+
+    psi_real_next.zeros(nx, ny);
+    psi_imag_next.zeros(nx, ny);
 }
 
 void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-    int i = 0;
-    mat psi_real_next = psi_real;
-    mat psi_imag_next = psi_imag;
-    while(i < 10000)
+    for (int i = 0; i < 10000; ++i)
     {
-        // Mise à jour de la fonction d'onde pour les points intérieurs
-        psi_real_next.submat(1, 1, nx-2, ny-2) = psi_real.submat(1, 1, nx-2, ny-2) - dt * (A % psi_imag.submat(1, 1, nx-2, ny-2) + coef_x * (psi_imag.submat(2, 1, nx-1, ny-2)+psi_imag.submat(0, 1, nx-3, ny-2)) + coef_y * (psi_imag.submat(1, 2, nx-2, ny-1)+psi_imag.submat(1, 0, nx-2, ny-3))) ;
-        psi_imag_next.submat(1, 1, nx-2, ny-2) = psi_real.submat(1, 1, nx-2, ny-2) + dt * (A % psi_real.submat(1, 1, nx-2, ny-2) + coef_x * (psi_real.submat(2, 1, nx-1, ny-2)+psi_real.submat(0, 1, nx-3, ny-2)) + coef_y * (psi_real.submat(1, 2, nx-2, ny-1)+psi_real.submat(1, 0, nx-2, ny-3))) ;
-        
-        // Mettre à jour les matrices d'origine
-        psi_real = psi_real_next;
-        psi_imag = psi_imag_next;
+        // Mise à jour intérieure selon FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_imag.submat(2, 1, nx_1, ny_2) +
+                    psi_imag.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_imag.submat(1, 2, nx_2, ny_1) +
+                    psi_imag.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_real.submat(2, 1, nx_1, ny_2) +
+                    psi_real.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_real.submat(1, 2, nx_2, ny_1) +
+                    psi_real.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        // Échange les pointeurs au lieu de copier les matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
 
         info.stepcounter++;
         info.t += dt;
-        i++;
     }
 }
 
-void Solver::BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag)
-{
-    // Éviter les copies complètes si possible
-	mat psi_real_next = psi_real;
-    mat psi_imag_next = psi_imag;
 
-    // Mise à jour de la fonction d'onde pour les points intérieurs
-    psi_real_next.submat(1, 1, nx-2, ny-2) = psi_real.submat(1, 1, nx-2, ny-2) - dt * (A % psi_imag.submat(1, 1, nx-2, ny-2) + coef_x * (psi_imag.submat(2, 1, nx-1, ny-2)+psi_imag.submat(0, 1, nx-3, ny-2)) + coef_y * (psi_imag.submat(1, 2, nx-2, ny-1)+psi_imag.submat(1, 0, nx-2, ny-3))) ;
-    psi_imag_next.submat(1, 1, nx-2, ny-2) = psi_real.submat(1, 1, nx-2, ny-2) + dt * (A % psi_real.submat(1, 1, nx-2, ny-2) + coef_x * (psi_real.submat(2, 1, nx-1, ny-2)+psi_real.submat(0, 1, nx-3, ny-2)) + coef_y * (psi_real.submat(1, 2, nx-2, ny-1)+psi_real.submat(1, 0, nx-2, ny-3))) ;
-    
-    // Mettre à jour les matrices d'origine
-    psi_real = psi_real_next;
-    psi_imag = psi_imag_next;
+void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
+{
+    for (int i = 0; i < 10000; ++i)
+    {
+        // Mise à jour intérieure selon FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_imag.submat(2, 1, nx_1, ny_2) +
+                    psi_imag.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_imag.submat(1, 2, nx_2, ny_1) +
+                    psi_imag.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_real.submat(2, 1, nx_1, ny_2) +
+                    psi_real.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_real.submat(1, 2, nx_2, ny_1) +
+                    psi_real.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        // Échange les pointeurs au lieu de copier les matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
+
+        info.stepcounter++;
+        info.t += dt;
+    }
 }
 
-void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag)
+
+void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info)
 {
-    // Créer des copies temporaires pour stocker les valeurs à t+dt
-    mat psi_real_next = psi_real;
-    mat psi_imag_next = psi_imag;
-    
-    // Mise à jour de la fonction d'onde pour les points intérieurs
-    psi_real_next.submat(1, 1, nx-2, ny-2) = psi_real.submat(1, 1, nx-2, ny-2) - dt * (A % psi_imag.submat(1, 1, nx-2, ny-2) + coef_x * (psi_imag.submat(2, 1, nx-1, ny-2)+psi_imag.submat(0, 1, nx-3, ny-2)) + coef_y * (psi_imag.submat(1, 2, nx-2, ny-1)+psi_imag.submat(1, 0, nx-2, ny-3))) ;
-    psi_imag_next.submat(1, 1, nx-2, ny-2) = psi_real.submat(1, 1, nx-2, ny-2) + dt * (A % psi_real.submat(1, 1, nx-2, ny-2) + coef_x * (psi_real.submat(2, 1, nx-1, ny-2)+psi_real.submat(0, 1, nx-3, ny-2)) + coef_y * (psi_real.submat(1, 2, nx-2, ny-1)+psi_real.submat(1, 0, nx-2, ny-3))) ;
-    
-    // Mettre à jour les matrices d'origine
-    psi_real = psi_real_next;
-    psi_imag = psi_imag_next;
+    for (int i = 0; i < 10000; ++i)
+    {
+        // Mise à jour intérieure selon FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_imag.submat(2, 1, nx_1, ny_2) +
+                    psi_imag.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_imag.submat(1, 2, nx_2, ny_1) +
+                    psi_imag.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_real.submat(2, 1, nx_1, ny_2) +
+                    psi_real.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_real.submat(1, 2, nx_2, ny_1) +
+                    psi_real.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        // Échange les pointeurs au lieu de copier les matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
+
+        info.stepcounter++;
+        info.t += dt;
+    }
 }

@@ -12,19 +12,25 @@ class Solver
 public:
   Solver(arma::mat);
   void FTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
-  void BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag);
-  void CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag);
+  void BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
+  void CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   arma::mat V_inner;
 
   const double epsilon = 10e-6;
   double h_bar;
   double m;
-  int x_min;
-  int x_max;
-  int y_min;
-  int y_max;
+  double x_min;
+  double x_max;
+  double y_min;
+  double y_max;
   arma::uword nx;
   arma::uword ny;
+  int nx_1;
+  int ny_1;
+  int nx_2;
+  int ny_2;
+  int nx_3;
+  int ny_3;
   int t_max;
 
   std::string method;
@@ -34,5 +40,8 @@ public:
   arma::mat A;
   double coef_x;
   double coef_y;
+
+  arma::mat psi_real_next;
+  arma::mat psi_imag_next;
 };
 #endif

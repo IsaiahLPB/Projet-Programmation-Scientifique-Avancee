@@ -79,30 +79,23 @@ match method:
 			print("File", info.stepcounter, "written")
 		print("FTCS completed")
 	case "BTCS":
-		while t < t_max:
-			solver.BTCS_derivation(psi_real, psi_imag)
-			if stepcounter % 500 == 0:
+		while info.t < t_max:
+			solver.BTCS_derivation(psi_real, psi_imag, info)
 			# Write the files in the DB 
-				re_filename = f"data/BTCS_psi_{stepcounter}_re.csv"
-				im_filename = f"data/BTCS_psi_{stepcounter}_im.csv"
-				np.savetxt(re_filename, psi_real, delimiter=',')
-				np.savetxt(im_filename, psi_imag, delimiter=',')
-				print("File", stepcounter, "written")
-			stepcounter +=1 
-			t += dt
+			re_filename = f"data/BTCS_psi_{info.stepcounter}_re.csv"
+			im_filename = f"data/BTCS_psi_{info.stepcounter}_im.csv"
+			np.savetxt(re_filename, psi_real, delimiter=',')
+			np.savetxt(im_filename, psi_imag, delimiter=',')
+			print("File", info.stepcounter, "written")
 		print("BTCS completed")
 	case "CTCS":
-		while t < t_max:
-			solver.CTCS_derivation(psi_real, psi_imag)
-			if stepcounter % 50 == 0:
-			# Write the files in the DB 
-				re_filename = f"data/CTCS_psi_{stepcounter}_re.csv"
-				im_filename = f"data/CTCS_psi_{stepcounter}_im.csv"
-				np.savetxt(re_filename, psi_real, delimiter=',')
-				np.savetxt(im_filename, psi_imag, delimiter=',')
-				print("File", stepcounter, "written")
-			stepcounter +=1 
-			t += dt
+		while info.t < t_max:
+			solver.CTCS_derivation(psi_real, psi_imag, info)
+			re_filename = f"data/CTCS_psi_{info.stepcounter}_re.csv"
+			im_filename = f"data/CTCS_psi_{info.stepcounter}_im.csv"
+			np.savetxt(re_filename, psi_real, delimiter=',')
+			np.savetxt(im_filename, psi_imag, delimiter=',')
+			print("File", info.stepcounter, "written")
 		print("CTCS completed")
 	case default:
 		print("This method is not implemented")
