@@ -142,11 +142,23 @@ def calcPsi():
 		case 2:
 			return calcMult2DHOPsi0(), np.zeros((n_x, n_y))
 		
+def dataCleaner(data):
+	modified_data = dict(data)
+	modified_data.pop("name", None)
+	
+	param = modified_data.get("paramètres utilisateurs")
+	if param and "t_max" in param:
+		param.pop("t_max", None)
+	
+	return modified_data
+		
 def calcJSONHash():
 	file = "../consts.JSON"
 	with open(file, "r", encoding="utf-8") as f:
 		data = json.load(f)
 	
+	data = dataCleaner(data)
+
 	json_normalized = json.dumps(data, sort_keys=True, separators=(',', ':'))
 
 	hash = hashlib.sha256(json_normalized.encode("utf-8"))
@@ -164,6 +176,14 @@ def main():
 	# Calculate the hash of the experiment
 	hash = calcJSONHash()
 	print("Hash of the experiment: ", hash)
+	# if the name already exists : inform the user that an expriment with the same name already exists
+	# -> ask the user if he wants to overwrite the experiment
+	# -> if yes, overwrite the experiment
+	# -> if no, ask the user for a new name and end the program
 	# Send the data in the database if the experiment is not already done
+	# if the hash already exists : check the t_max value :
+	# -> if t_max is the same, inform the user that an expriment with the same hash already exists
+	# -> if the new t_max is lower than the old one, make a new experiment from the beginning
+	# -> if the new t_max is higher than the old one, make a new experiment from the last point
 
 main()
