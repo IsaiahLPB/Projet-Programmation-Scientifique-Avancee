@@ -1,109 +1,214 @@
 #include <armadillo>
+#include <complex>
+#include <string>
+#include <omp.h>
 
+#include "../include/json.hpp"
 #include "../include/solver.h"
-#include "../include/complexmat.h"
+#include "../include/TimeStepInfo.h"
 
 using namespace arma;
+using namespace std;
 
-Solver::Solver()
+using json = nlohmann::json;
+
+Solver::Solver(mat V)
 {
-	
+    ifstream fichier("../consts.JSON");
+    if (!fichier.is_open()) {
+        std::cerr << "Erreur d'ouverture du fichier JSON." << std::endl;
+        exit(1);
+    }
+
+    json data;
+    fichier >> data;
+
+    h_bar = data["constantes"]["h"];
+    m     = data["constantes"]["m"];
+    nx    = data["constantes"]["n_x"];
+    ny    = data["constantes"]["n_y"];
+    x_min = data["constantes"]["x_min"];
+    x_max = data["constantes"]["x_max"];
+    y_min = data["constantes"]["y_min"];
+    y_max = data["constantes"]["y_max"];
+
+    method = data["paramètres utilisateurs"]["method"];
+    auto dt_json = data["paramètres utilisateurs"]["dt"];
+
+    if (dt_json.is_string()) {
+        std::string dt_str = dt_json;
+        if (dt_str == "default") {
+            if (method == "FTCS") {
+                dt = 0.02 / 800;
+            } else if (method == "BTCS") {
+                dt = 0.02 / 800;
+            } else if (method == "CTCS") {
+                dt = 0.02 / 4;
+            } else {
+                std::cerr << "Unknown method: " << method << std::endl;
+            }
+        } else {
+            try {
+                std::cout << "Valeur de dt dans le JSON: \"" << dt_str << "\"" << std::endl;
+                dt = std::stod(dt_str);
+            } catch (const std::exception& e) {
+                std::cerr << "Erreur de conversion de dt: " << e.what() << std::endl;
+                throw;
+            }
+        }
+    } else if (dt_json.is_number()) {
+        dt = dt_json;
+    } else {
+        std::cerr << "Champ 'dt' invalide ou manquant" << std::endl;
+        throw std::runtime_error("Champ 'dt' invalide");
+    }
+
+	dx = (x_max - x_min) / (nx - 1);
+	dy = (y_max - y_min) / (ny - 1);
+
+	//std::cout << "V size: " << V.n_rows << " x " << V.n_cols << std::endl;
+	V_inner = V.submat(1, 1, nx-2, ny-2);
+	//std::cout << "Accessing submat(" << 1 << ", " << 1 << ", " << nx-2 << ", " << ny-2 << ")" << std::endl;
+
+	A = ((-1/h_bar) * V_inner - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
+	coef_x = h_bar / (2 * m * dx * dx);
+   	coef_y = h_bar / (2 * m * dy * dy);
+
+    nx_1 = nx-1;
+    ny_1 = ny-1;
+    nx_2 = nx-2;
+    ny_2 = ny-2;
+    nx_3 = nx-3;
+    ny_3 = ny-3;
+
+    psi_real_next.zeros(nx, ny);
+    psi_imag_next.zeros(nx, ny);
 }
 
-complex_mat Solver::FTCS_derivation(complex_mat psi_t)
+void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-  complex_mat psi_t_dt = init_c_mat(nx, ny);
-
-  double dt = dt_vals[0];
-  int dx = (x_max - x_min) / nx;
-  int dy = (y_max - y_min) / ny;  
-
-  for(uword i = 1; i < nx-1; ++i)
-  {
-    for(uword j = 1; j < ny-1; ++j)
+    for (int i = 0; i < 10000; ++i)
     {
-      double A = ((-1/h_bar)*V(i,j) - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
-      double B = (h_bar/2*m);
-      double psi_x_im = psi_t.im(i+1,j) + psi_t.im(i-1,j);
-      double psi_y_im = psi_t.im(i,j+1) + psi_t.im(i,j-1);
-      double psi_x_re = psi_t.re(i+1,j) + psi_t.re(i-1,j);
-      double psi_y_re = psi_t.re(i,j+1) + psi_t.re(i,j-1);
+        // Mise à jour intérieure selon FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_imag.submat(2, 1, nx_1, ny_2) +
+                    psi_imag.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_imag.submat(1, 2, nx_2, ny_1) +
+                    psi_imag.submat(1, 0, nx_2, ny_3)
+                )
+            );
 
-      psi_t_dt.re(i,j) = psi_t.re(i,j) - dt * (A * psi_t.im(i,j) + B * ((1/dx*dx) * psi_x_im + (1/dy*dy) * psi_y_im));
-      psi_t_dt.im(i,j) = psi_t.im(i,j) + dt * (A * psi_t.re(i,j) + B * ((1/dx*dx) * psi_x_re + (1/dy*dy) * psi_y_re));
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_real.submat(2, 1, nx_1, ny_2) +
+                    psi_real.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_real.submat(1, 2, nx_2, ny_1) +
+                    psi_real.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        // Échange les pointeurs au lieu de copier les matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
+
+        info.stepcounter++;
+        info.t += dt;
     }
-  }
-  return psi_t_dt;
 }
 
-complex_mat Solver::BTCS_derivation(complex_mat psi_t)
+
+void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-  complex_mat psi_t_dt = init_c_mat(nx, ny);
-  complex_mat new_psi_t_dt = init_c_mat(nx, ny);  
-
-  double dt = dt_vals[1];
-  int dx = (x_max - x_min) / nx;
-  int dy = (y_max - y_min) / ny;  
-
-  // We approximate psi_t_dt by psi_t and affinate by the result of each iteration (Euler's method)
-  new_psi_t_dt = psi_t;
-  while(arma::approx_equal(psi_t_dt.re, new_psi_t_dt.re, "absdiff", epsilon) == false ||
-        arma::approx_equal(psi_t_dt.im, new_psi_t_dt.im, "absdiff", epsilon) == false )
-  {
-    psi_t_dt = new_psi_t_dt;
-    for(uword i = 1; i < nx-1; ++i)
+    for (int i = 0; i < 10000; ++i)
     {
-      for(uword j = 1; j < ny-1; ++j)
-      {
-        double A = ((-1/h_bar)*V(i,j) - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
-        double B = (h_bar/2*m);
-        double psi_x_im = psi_t_dt.im(i+1,j) + psi_t_dt.im(i-1,j);
-        double psi_y_im = psi_t_dt.im(i,j+1) + psi_t_dt.im(i,j-1);
-        double psi_x_re = psi_t_dt.re(i+1,j) + psi_t_dt.re(i-1,j);
-        double psi_y_re = psi_t_dt.re(i,j+1) + psi_t_dt.re(i,j-1);
+        // Mise à jour intérieure selon FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_imag.submat(2, 1, nx_1, ny_2) +
+                    psi_imag.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_imag.submat(1, 2, nx_2, ny_1) +
+                    psi_imag.submat(1, 0, nx_2, ny_3)
+                )
+            );
 
-        new_psi_t_dt.re(i,j) = psi_t.re(i,j) - dt * (A * psi_t_dt.im(i,j) + B * ((1/dx*dx) * psi_x_im + (1/dy*dy) * psi_y_im));
-        new_psi_t_dt.im(i,j) = psi_t.im(i,j) + dt * (A * psi_t_dt.re(i,j) + B * ((1/dx*dx) * psi_x_re + (1/dy*dy) * psi_y_re));
-      }
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_real.submat(2, 1, nx_1, ny_2) +
+                    psi_real.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_real.submat(1, 2, nx_2, ny_1) +
+                    psi_real.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        // Échange les pointeurs au lieu de copier les matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
+
+        info.stepcounter++;
+        info.t += dt;
     }
-  }
-  return new_psi_t_dt;
 }
 
-complex_mat Solver::CTCS_derivation(complex_mat psi_t)
+
+void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info)
 {
-  complex_mat psi_t_dt = init_c_mat(nx, ny);
-  complex_mat new_psi_t_dt = init_c_mat(nx, ny);
-
-  double dt = dt_vals[2];
-  int dx = (x_max - x_min) / nx;
-  int dy = (y_max - y_min) / ny;  
-
-  // We approximate psi_t_dt by psi_t and affinate by the result of each iteration (Euler's method)
-  new_psi_t_dt = psi_t;
-  while(arma::approx_equal(psi_t_dt.re, new_psi_t_dt.re, "absdiff", epsilon) == false ||
-        arma::approx_equal(psi_t_dt.im, new_psi_t_dt.im, "absdiff", epsilon) == false )
-  {
-    psi_t_dt = new_psi_t_dt;
-    for(uword i = 1; i < nx-1; ++i)
+    for (int i = 0; i < 10000; ++i)
     {
-      for(uword j = 1; j < ny-1; ++j)
-      {
-        double A = ((-1/h_bar)*V(i,j) - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
-        double B = (h_bar/2*m);
-        double psi_x_im = psi_t.im(i+1,j) + psi_t.im(i-1,j);
-        double psi_y_im = psi_t.im(i,j+1) + psi_t.im(i,j-1);
-        double psi_x_re = psi_t.re(i+1,j) + psi_t.re(i-1,j);
-        double psi_y_re = psi_t.re(i,j+1) + psi_t.re(i,j-1);
-        double psi_dt_x_im = psi_t_dt.im(i+1,j) + psi_t_dt.im(i-1,j);
-        double psi_dt_y_im = psi_t_dt.im(i,j+1) + psi_t_dt.im(i,j-1);
-        double psi_dt_x_re = psi_t_dt.re(i+1,j) + psi_t_dt.re(i-1,j);
-        double psi_dt_y_re = psi_t_dt.re(i,j+1) + psi_t_dt.re(i,j-1);
+        // Mise à jour intérieure selon FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_imag.submat(2, 1, nx_1, ny_2) +
+                    psi_imag.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_imag.submat(1, 2, nx_2, ny_1) +
+                    psi_imag.submat(1, 0, nx_2, ny_3)
+                )
+            );
 
-        new_psi_t_dt.re(i,j) = psi_t.re(i,j) - (dt/2) * (A * (psi_t.im(i,j)+psi_t_dt.im(i,j)) + B * ((1/dx*dx) * psi_x_im * psi_dt_x_im + (1/dy*dy) * psi_y_im * psi_dt_y_im));
-        new_psi_t_dt.im(i,j) = psi_t.im(i,j) + (dt/2) * (A * (psi_t.re(i,j)+psi_t_dt.im(i,j)) + B * ((1/dx*dx) * psi_x_re * psi_dt_x_re + (1/dy*dy) * psi_y_re * psi_dt_y_re));
-      }
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (
+                    psi_real.submat(2, 1, nx_1, ny_2) +
+                    psi_real.submat(0, 1, nx_3, ny_2)
+                )
+                + coef_y * (
+                    psi_real.submat(1, 2, nx_2, ny_1) +
+                    psi_real.submat(1, 0, nx_2, ny_3)
+                )
+            );
+
+        // Échange les pointeurs au lieu de copier les matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
+
+        info.stepcounter++;
+        info.t += dt;
     }
-  }
-  return new_psi_t_dt;
 }

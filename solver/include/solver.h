@@ -2,36 +2,46 @@
 #define SOLVER_H
 
 #include <armadillo>
+#include <complex>
+#include <string>
 
-#include "../include/complexmat.h"
-
-using namespace arma;
-
-const double epsilon = 10e-6;
-const int h_bar = 1;
-const int m = 1;
-const int x_min = -10;
-const int x_max = 10;
-const int y_min = -10;
-const int y_max = 10;
-const uword nx = 101;
-const uword ny = 101;
-const int t_max = 10;
+#include "../include/TimeStepInfo.h"
 
 class Solver
 {
 public:
-  Solver();
-  complex_mat FTCS_derivation(complex_mat);
-  complex_mat BTCS_derivation(complex_mat);
-  complex_mat CTCS_derivation(complex_mat);
-  arma::mat V;
+  Solver(arma::mat);
+  void FTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
+  void BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
+  void CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
+  arma::mat V_inner;
 
-  /*
-   * dt[0] - FTCS
-   * dt[1] - BTCS
-   * dt[2] - CTCS 
-  */
-  double dt_vals[3] = {0.02/800, 0.02/40, 0.02/4};
+  const double epsilon = 10e-6;
+  double h_bar;
+  double m;
+  double x_min;
+  double x_max;
+  double y_min;
+  double y_max;
+  arma::uword nx;
+  arma::uword ny;
+  int nx_1;
+  int ny_1;
+  int nx_2;
+  int ny_2;
+  int nx_3;
+  int ny_3;
+  int t_max;
+
+  std::string method;
+  double dt;
+  double dx;
+  double dy;
+  arma::mat A;
+  double coef_x;
+  double coef_y;
+
+  arma::mat psi_real_next;
+  arma::mat psi_imag_next;
 };
 #endif

@@ -5,13 +5,13 @@ from mpl_toolkits.mplot3d import Axes3D
 import os
 import glob
 import re
-import sys
+import json
 
-def load_wavefunction_data(alg_id, iteration, base_dir='data/'):
+def load_wavefunction_data(method_id, iteration, base_dir='data/'):
     """
     Load real and imaginary parts of the wavefunction for a specific iteration
     """
-    match(alg_id):
+    match(method_id):
         case 0:
             real_file = os.path.join(base_dir, f'FTCS_psi_{iteration}_re.csv')
             imag_file = os.path.join(base_dir, f'FTCS_psi_{iteration}_im.csv')
@@ -73,11 +73,11 @@ def plot_probability_density_3d(probability_density, iteration, ax=None, colorma
     
     return ax
 
-def get_available_iterations(alg_id, base_dir='data/'):
+def get_available_iterations(method_id, base_dir='data/'):
     """
     Find all available iterations in the data directory
     """
-    match(alg_id):
+    match(method_id):
         case 0:
             pattern = re.compile(r'FTCS_psi_(\d+)_re\.csv')
             iterations = []
@@ -109,7 +109,7 @@ def visualize_multiple_iterations(iterations=None, base_dir='data/',
     """
     # If iterations not specified, get all available
     if iterations is None:
-        iterations = get_available_iterations(alg_id, base_dir)
+        iterations = get_available_iterations(method_id, base_dir)
     
     if not iterations:
         print("No iterations found!")
@@ -125,7 +125,7 @@ def visualize_multiple_iterations(iterations=None, base_dir='data/',
     fig = plt.figure(figsize=(6*layout[1], 5*layout[0]))
     
     for i, iteration in enumerate(iterations):
-        real_part, imag_part = load_wavefunction_data(alg_id, iteration, base_dir)
+        real_part, imag_part = load_wavefunction_data(method_id, iteration, base_dir)
         probability_density = calculate_probability_density(real_part, imag_part)
         
         if probability_density is not None:
@@ -136,7 +136,7 @@ def visualize_multiple_iterations(iterations=None, base_dir='data/',
     plt.show()
 
 def create_animation(iterations=None, base_dir='data/', 
-                    filename='probability_density_animation.mp4', 
+                    filename='videos/probability_density_animation.mp4', 
                     fps=5, colormap='viridis'):
     """
     Create an animation of probability density evolution over iterations
@@ -146,14 +146,14 @@ def create_animation(iterations=None, base_dir='data/',
     
     # If iterations not specified, get all available
     if iterations is None:
-        iterations = get_available_iterations(alg_id, base_dir)
+        iterations = get_available_iterations(method_id, base_dir)
     
     if not iterations:
         print("No iterations found!")
         return
     
     # Load the first iteration to get dimensions
-    real_part, imag_part = load_wavefunction_data(alg_id, iterations[0], base_dir)
+    real_part, imag_part = load_wavefunction_data(method_id, iterations[0], base_dir)
     probability_density = calculate_probability_density(real_part, imag_part)
     
     if probability_density is None:
@@ -188,7 +188,7 @@ def create_animation(iterations=None, base_dir='data/',
         ax.clear()
         iteration = iterations[frame]
         
-        real_part, imag_part = load_wavefunction_data(alg_id, iteration, base_dir)
+        real_part, imag_part = load_wavefunction_data(method_id, iteration, base_dir)
         probability_density = calculate_probability_density(real_part, imag_part)
         
         if probability_density is not None:
@@ -221,18 +221,32 @@ def create_animation(iterations=None, base_dir='data/',
 # Example usage:
 if __name__ == "__main__":
 
-    if(len(sys.argv) != 2):
-        print("Error: usage <int>")
-        exit(1)
+    # Read JSON file
+    with open("../consts.JSON", "r") as f:
+        data = json.load(f)
 
-    alg_id = int(sys.argv[1])
+    param = data["paramètres utilisateurs"]
 
-    if(alg_id > 2):
-        print("Error: <int> must be between 0 and 2")
-        exit(2)
+    method = param["method"]
+    t_max = param["t_max"]
+    dt = param["dt"]
+    if dt == "default":
+        match method:
+            case "FTCS":
+                dt = 0.02/800
+                method_id = 0
+            case "BTCS":
+                dt = 0.02/40
+                method_id = 1
+            case "CTCS":
+                dt = 0.02/4
+                method_id = 2
+            case default:
+                print("Error : This method is not implemented")
+                exit(1)
 
     # Get all available iterations
-    iterations = get_available_iterations(alg_id)
+    iterations = get_available_iterations(method_id)
     
     if not iterations:
         print("No data files found. Make sure your CSV files are in the 'data/' directory.")
@@ -265,7 +279,7 @@ if __name__ == "__main__":
                 colormap = "viridis"
             
             print(f"Visualizing iteration {iter_num}...")
-            real_part, imag_part = load_wavefunction_data(alg_id, iter_num)
+            real_part, imag_part = load_wavefunction_data(method_id, iter_num)
             probability_density = calculate_probability_density(real_part, imag_part)
             
             if probability_density is not None:
@@ -353,9 +367,9 @@ if __name__ == "__main__":
         if not colormap:
             colormap = "viridis"
         
-        filename = input("Output filename (default=probability_density_animation.mp4): ")
+        filename = input("Output filename (default=videos/probability_density_animation.mp4): ")
         if not filename:
-            filename = "probability_density_animation.mp4"
+            filename = "videos/probability_density_animation.mp4"
         
         create_animation(iterations=selected_iterations, fps=fps, colormap=colormap, filename=filename)
         print(f"\nAnimation created as '{filename}'")
