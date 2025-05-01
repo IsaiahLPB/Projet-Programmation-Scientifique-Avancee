@@ -23,6 +23,7 @@ Solver::Solver(mat V)
     json data;
     fichier >> data;
 
+    error = 1.0;
     h_bar = data["constantes"]["h"];
     m     = data["constantes"]["m"];
     nx    = data["constantes"]["n_x"];
@@ -41,7 +42,7 @@ Solver::Solver(mat V)
             if (method == "FTCS") {
                 dt = 0.02 / 800;
             } else if (method == "BTCS") {
-                dt = 0.02 / 800;
+                dt = 0.02 / 40;
             } else if (method == "CTCS") {
                 dt = 0.02 / 4;
             } else {
@@ -130,52 +131,77 @@ void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 
 void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-    for (int i = 0; i < 10000; ++i)
+    for (int i = 0; i < 500; ++i)
     {
-        // Mise à jour intérieure selon FTCS
-        psi_real_next.submat(1, 1, nx_2, ny_2) =
-            psi_real.submat(1, 1, nx_2, ny_2)
-            - dt * (
-                A % psi_imag.submat(1, 1, nx_2, ny_2)
-                + coef_x * (
-                    psi_imag.submat(2, 1, nx_1, ny_2) +
-                    psi_imag.submat(0, 1, nx_3, ny_2)
-                )
-                + coef_y * (
-                    psi_imag.submat(1, 2, nx_2, ny_1) +
-                    psi_imag.submat(1, 0, nx_2, ny_3)
-                )
-            );
-
-        psi_imag_next.submat(1, 1, nx_2, ny_2) =
-            psi_imag.submat(1, 1, nx_2, ny_2)
-            + dt * (
-                A % psi_real.submat(1, 1, nx_2, ny_2)
-                + coef_x * (
-                    psi_real.submat(2, 1, nx_1, ny_2) +
-                    psi_real.submat(0, 1, nx_3, ny_2)
-                )
-                + coef_y * (
-                    psi_real.submat(1, 2, nx_2, ny_1) +
-                    psi_real.submat(1, 0, nx_2, ny_3)
-                )
-            );
-
-        // Échange les pointeurs au lieu de copier les matrices
+        // Variables temporaires pour stocker les anciennes valeurs au début du pas de temps
+        mat psi_real_old = psi_real;
+        mat psi_imag_old = psi_imag;
+        
+        // Initialisation des matrices "next" avec les valeurs actuelles
+        psi_real_next = psi_real;
+        psi_imag_next = psi_imag;
+        
+        // Méthode itérative d'Euler pour approximer la solution implicite
+        iter = 0;
+        
+        // Boucle de convergence
+        while (error > epsilon && iter < max_iter)
+        {
+            // Sauvegarde des valeurs avant la mise à jour pour calculer l'erreur
+            mat psi_real_prev = psi_real_next;
+            mat psi_imag_prev = psi_imag_next;
+            
+            // Mise à jour implicite (BTCS) pour la partie réelle
+            psi_real_next.submat(1, 1, nx_2, ny_2) =
+                psi_real_old.submat(1, 1, nx_2, ny_2)
+                - dt * (
+                    A % psi_imag_next.submat(1, 1, nx_2, ny_2)
+                    + coef_x * (
+                        psi_imag_next.submat(2, 1, nx_1, ny_2) +
+                        psi_imag_next.submat(0, 1, nx_3, ny_2)
+                    )
+                    + coef_y * (
+                        psi_imag_next.submat(1, 2, nx_2, ny_1) +
+                        psi_imag_next.submat(1, 0, nx_2, ny_3)
+                    )
+                );
+            
+            // Mise à jour implicite (BTCS) pour la partie imaginaire
+            psi_imag_next.submat(1, 1, nx_2, ny_2) =
+                psi_imag_old.submat(1, 1, nx_2, ny_2)
+                + dt * (
+                    A % psi_real_next.submat(1, 1, nx_2, ny_2)
+                    + coef_x * (
+                        psi_real_next.submat(2, 1, nx_1, ny_2) +
+                        psi_real_next.submat(0, 1, nx_3, ny_2)
+                    )
+                    + coef_y * (
+                        psi_real_next.submat(1, 2, nx_2, ny_1) +
+                        psi_real_next.submat(1, 0, nx_2, ny_3)
+                    )
+                );
+            
+            // Calcul de l'erreur entre deux itérations successives
+            error = norm(psi_real_next - psi_real_prev, "fro") + 
+                    norm(psi_imag_next - psi_imag_prev, "fro");
+            
+            iter++;
+        }
+        
+        // Une fois la convergence atteinte, on met à jour psi_real et psi_imag pour le prochain pas de temps
         std::swap(psi_real, psi_real_next);
         std::swap(psi_imag, psi_imag_next);
-
+        
         info.stepcounter++;
         info.t += dt;
     }
 }
 
-
 void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info)
 {
-    for (int i = 0; i < 10000; ++i)
+    for (int i = 0; i < 50; ++i)
     {
-        // Mise à jour intérieure selon FTCS
+        // Mise à jour intérieure selon CTCS
         psi_real_next.submat(1, 1, nx_2, ny_2) =
             psi_real.submat(1, 1, nx_2, ny_2)
             - dt * (
