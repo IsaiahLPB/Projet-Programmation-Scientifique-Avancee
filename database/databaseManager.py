@@ -159,5 +159,3 @@ def test():
     print(GetJsonFile('test'))
     print(GetLastState('test'))
     print(GetStates('test'))
-
-test()
