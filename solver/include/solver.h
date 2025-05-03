@@ -17,6 +17,11 @@ public:
   arma::mat V_inner;
 
   const double epsilon = 10e-6;
+  
+  const int max_iter = 100; // Nombre maximum d'itérations pour convergence
+  int iter;
+  double error;
+
   double h_bar;
   double m;
   double x_min;

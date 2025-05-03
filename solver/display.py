@@ -143,7 +143,7 @@ def create_animation(iterations=None, base_dir='data/',
     Requires matplotlib.animation and ffmpeg
     """
     import matplotlib.animation as animation
-    
+
     # If iterations not specified, get all available
     if iterations is None:
         iterations = get_available_iterations(method_id, base_dir)
@@ -183,7 +183,15 @@ def create_animation(iterations=None, base_dir='data/',
     ax.set_zlabel('Probability Density |ψ|²')
     title = ax.set_title(f'Probability Density at Iteration {iterations[0]}')
     
-    # Function to update the plot for each frame
+    # Precompute z_max
+    z_max = 0
+    for iteration in iterations:
+        real_part, imag_part = load_wavefunction_data(method_id, iteration, base_dir)
+        prob_density = calculate_probability_density(real_part, imag_part)
+        if prob_density is not None:
+            z_max = max(z_max, np.max(prob_density))
+
+    # Update function with fixed z-limit
     def update_plot(frame):
         ax.clear()
         iteration = iterations[frame]
@@ -194,17 +202,18 @@ def create_animation(iterations=None, base_dir='data/',
         if probability_density is not None:
             surf = ax.plot_surface(
                 x_grid, y_grid, probability_density,
-                cmap=plt.colormaps[colormap],  # Updated line
+                cmap=plt.colormaps[colormap],
                 linewidth=0,
                 antialiased=True
             )
-            
+            ax.set_zlim(0, z_max)  # <---- fix scale here
             ax.set_xlabel('X')
             ax.set_ylabel('Y')
             ax.set_zlabel('Probability Density |ψ|²')
             ax.set_title(f'Probability Density at Iteration {iteration}')
         
         return surf,
+
     
     # Create animation
     anim = animation.FuncAnimation(
@@ -240,6 +249,17 @@ if __name__ == "__main__":
                 method_id = 1
             case "CTCS":
                 dt = 0.02/4
+                method_id = 2
+            case default:
+                print("Error : This method is not implemented")
+                exit(1)
+    else :
+        match method:
+            case "FTCS":
+                method_id = 0
+            case "BTCS":
+                method_id = 1
+            case "CTCS":
                 method_id = 2
             case default:
                 print("Error : This method is not implemented")
