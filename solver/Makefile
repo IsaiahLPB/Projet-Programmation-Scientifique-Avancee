@@ -6,7 +6,7 @@ bindings:
 	make -C src/
 
 run:
-	../psa_venv/bin/python3 src/main.py 
+	../psa_venv/bin/python3 src/main.py ../consts.JSON
 
 display:
 	../psa_venv/bin/python3 display.py

@@ -1,6 +1,4 @@
 import json
-import sys
-import os
 
 def get_json(path):
 	with open(path, "r") as f:

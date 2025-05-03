@@ -9,8 +9,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import database.databaseManager as db 
 import json_utils as js_uti
 
+if (len(sys.argv) != 2):
+	print("Usage;", sys.atgv[0], "<path/to/json>")
+json_path = sys.argv[1]
+
 # Read JSON file
-exp_name, nx, ny, x_min, x_max, y_min, y_max, method, t_max, dt = js_uti.get_json(sys.argv[1])
+exp_name, nx, ny, x_min, x_max, y_min, y_max, method, t_max, dt = js_uti.get_json(json_path)
 
 # Definition of V (will be retrived in the DB)
 x_vec = np.linspace(x_min, x_max, nx)
@@ -40,7 +44,7 @@ psi_imag = np.imag(psi)
 psi_abs2 = np.abs(psi)**2
 
 # TEMPORARY 
-#db.CreateExperience(exp_name, "../consts.JSON", V)
+#db.CreateExperience(exp_name, "json_path", V)
 
 # Retrive data from de DB
 #V = db.GetPotential(exp_name)
@@ -53,20 +57,20 @@ V = np.asfortranarray(V)
 psi_real = np.asfortranarray(psi_real)
 psi_imag = np.asfortranarray(psi_imag)
 
-solver = solver.Solver(V)
+solver = solver.Solver(V, sys.argv[1])
 
 match method:
 	case "FTCS":
 		while info.t < t_max:
 			solver.FTCS_derivation(psi_real, psi_imag, info)
 			# Write the files in the DB
-			#re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
-			#im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
-			#np.savetxt(re_filename, psi_real, delimiter=',')
-			#np.savetxt(im_filename, psi_imag, delimiter=',')
-			#print("File", info.stepcounter, "written")
-			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
-			print("File", info.stepcounter, "written in the database")
+			re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
+			im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
+			np.savetxt(re_filename, psi_real, delimiter=',')
+			np.savetxt(im_filename, psi_imag, delimiter=',')
+			print("File", info.stepcounter, "written")
+			#db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
+			#print("File", info.stepcounter, "written in the database")
 		print("FTCS completed")
 	case "BTCS":
 		while info.t < t_max:

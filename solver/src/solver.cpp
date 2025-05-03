@@ -1,7 +1,6 @@
 #include <armadillo>
 #include <complex>
 #include <string>
-#include <omp.h>
 
 #include "../include/json.hpp"
 #include "../include/solver.h"
@@ -12,9 +11,9 @@ using namespace std;
 
 using json = nlohmann::json;
 
-Solver::Solver(mat V)
+Solver::Solver(mat V, const char *path)
 {
-    ifstream fichier("../consts.JSON");
+    ifstream fichier(path);
     if (!fichier.is_open()) {
         std::cerr << "Erreur d'ouverture du fichier JSON." << std::endl;
         exit(1);

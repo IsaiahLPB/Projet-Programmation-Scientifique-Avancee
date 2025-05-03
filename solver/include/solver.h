@@ -10,7 +10,7 @@
 class Solver
 {
 public:
-  Solver(arma::mat);
+  Solver(arma::mat V, const char *path);
   void FTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   void BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   void CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
