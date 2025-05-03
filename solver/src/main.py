@@ -10,7 +10,8 @@ import database.databaseManager as db
 import json_utils as js_uti
 
 if (len(sys.argv) != 2):
-	print("Usage;", sys.atgv[0], "<path/to/json>")
+	print("Usage;", sys.argv[0], "<path/to/json>")
+	exit(1)
 json_path = sys.argv[1]
 
 # Read JSON file
