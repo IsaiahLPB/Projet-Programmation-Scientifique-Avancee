@@ -1,7 +1,5 @@
 import solver
 import numpy as np
-import math
-import json
 from solver import TimeStepInfo
 import sys
 import os
@@ -9,35 +7,10 @@ import os
 # Ajoute la racine du projet au path Python
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 import database.databaseManager as db 
+import json_utils as js_uti
 
 # Read JSON file
-with open("../consts.JSON", "r") as f:
-    data = json.load(f)
-
-# Get constants 
-constants = data["constantes"]
-param = data["paramètres utilisateurs"]
-
-exp_name = param["experience_name"]
-nx,ny = constants["n_x"], constants["n_y"]
-x_min, x_max, y_min, y_max = constants["x_min"], constants["x_max"], constants["y_min"], constants["y_max"]
-method = param["method"]
-t_max = param["t_max"]
-dt = param["dt"]
-if dt == "default":
-	match method:
-		case "FTCS":
-			dt = 0.02/800
-			method_id = 0
-		case "BTCS":
-			dt = 0.02/40
-			method_id = 1
-		case "CTCS":
-			dt = 0.02/4
-			method_id = 2
-		case default:
-			print("Error : This method is not implemented")
-			exit(1)
+exp_name, nx, ny, x_min, x_max, y_min, y_max, method, t_max, dt = js_uti.get_json(sys.argv[1])
 
 # Definition of V (will be retrived in the DB)
 x_vec = np.linspace(x_min, x_max, nx)
