@@ -7,8 +7,8 @@ import sys
 import os
 
 # Ajoute la racine du projet au path Python
-#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-#import database.databaseManager as db 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+import database.databaseManager as db 
 
 # Read JSON file
 with open("../consts.JSON", "r") as f:
@@ -87,13 +87,13 @@ match method:
 		while info.t < t_max:
 			solver.FTCS_derivation(psi_real, psi_imag, info)
 			# Write the files in the DB
-			re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
-			im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
-			np.savetxt(re_filename, psi_real, delimiter=',')
-			np.savetxt(im_filename, psi_imag, delimiter=',')
-			#db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
-			#print("File", info.stepcounter, "written in the database")
-			print("File", info.stepcounter, "written")
+			#re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
+			#im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
+			#np.savetxt(re_filename, psi_real, delimiter=',')
+			#np.savetxt(im_filename, psi_imag, delimiter=',')
+			#print("File", info.stepcounter, "written")
+			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
+			print("File", info.stepcounter, "written in the database")
 		print("FTCS completed")
 	case "BTCS":
 		while info.t < t_max:
