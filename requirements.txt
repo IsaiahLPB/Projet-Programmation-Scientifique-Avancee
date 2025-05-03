@@ -3,3 +3,5 @@ matplotlib
 swig
 setuptools
 pymongo
+vtk
+pyevtk
