@@ -5,18 +5,18 @@ import json
 import hashlib
 from functools import reduce
 import matplotlib.image as mpimg
-#import database.databaseManager as db
+import sys
+import os
 
-with open("../consts.JSON", "r", encoding="utf-8") as file:
-    consts = json.load(file)
+# Ajoute la racine du projet au path Python
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+import database.databaseManager as db 
+import json_utils as js_uti
 
-n_x = consts["constantes"]["n_x"]
-n_y = consts["constantes"]["n_y"]
-h = consts["constantes"]["h"]
-m = consts["constantes"]["m"]
-kx = consts["constantes"]["k_x"]
-ky = consts["constantes"]["k_y"]
-w = consts["constantes"]["w"]
+# Read JSON file
+(exp_name, n_x, n_y, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y, 
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json("../consts.JSON")
+ 
 
 # Initialize the potential grid
 Vmat = np.zeros((n_x, n_y))
@@ -36,8 +36,7 @@ def calcHarmV():
 	return Vmat
 
 def calcVFromImage():
-	img_path = consts["paramètres utilisateurs"]["image_V"]
-	img = mpimg.imread(img_path)
+	img = mpimg.imread(image_V)
 	return img
 
 def plotV():
@@ -54,49 +53,43 @@ def calcGaussPsi0():
 	x = np.linspace(x0-10, x0+10, n_x)
 	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
-	psi0Re = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.cos(kx * X + ky * Y)
-	psi0Im = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.sin(kx * X + ky * Y)
+	psi0Re = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.cos(k_x * X + k_y * Y)
+	psi0Im = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.sin(k_x * X + k_y * Y)
 	return psi0Re, psi0Im
 
 def calc2DHOPsi0():
-	nx = consts["paramètres utilisateurs"]["psi"]["2DH0_nx"]
-	ny = consts["paramètres utilisateurs"]["psi"]["2DH0_ny"]
-
-	coeff_x = [0 for i in range(nx - 1)]
+	coeff_x = [0 for i in range(psi_2DH0_nx - 1)]
 	coeff_x.append(1)
 	H3_x = Hermite([coeff_x])
-	coeff_y = [0 for i in range(ny - 1)]
+	coeff_y = [0 for i in range(psi_2DH0_ny - 1)]
 	coeff_y.append(1)
 	H3_y = Hermite([coeff_y])
 
 	x = np.linspace(-10, 10, n_x)
 	y = np.linspace(-10, 10, n_y)
 	X, Y = np.meshgrid(x, y)
-	psi_x = (1/np.sqrt(2**nx * np.math.factorial(nx))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
-	psi_y = (1/np.sqrt(2**ny * np.math.factorial(ny))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
+	psi_x = (1/np.sqrt(2**psi_2DH0_nx * np.math.factorial(psi_2DH0_nx))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
+	psi_y = (1/np.sqrt(2**psi_2DH0_ny * np.math.factorial(psi_2DH0_ny))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
 
 	return psi_x * psi_y
 
 def calcMult2DHOPsi0():
-	nb = consts["paramètres utilisateurs"]["psi"]["nb"]
-	if nb == 1:
+	if psi_nb == 1:
 		return calc2DHOPsi0()
-	nx = consts["paramètres utilisateurs"]["psi"]["2DH0_nx"]
-	ny = consts["paramètres utilisateurs"]["psi"]["2DH0_ny"]
 	psi_array = []
-	for i in range(nb):
-		coeff_x = [0 for j in range(nx[i] - 1)]
+	for i in range(psi_nb):
+		coeff_x = [0 for j in range(psi_2DH0_nx[i] - 1)]
 		coeff_x.append(1)
 		H3_x = Hermite([coeff_x])
-		coeff_y = [0 for j in range(ny[i] - 1)]
+		coeff_y = [0 for j in range(psi_2DH0_ny[i] - 1)]
 		coeff_y.append(1)
 		H3_y = Hermite([coeff_y])
 
 		x = np.linspace(-10, 10, n_x)
 		y = np.linspace(-10, 10, n_y)
 		X, Y = np.meshgrid(x, y)
-		psi_x = (1/np.sqrt(2**nx[i] * np.math.factorial(nx[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
-		psi_y = (1/np.sqrt(2**ny[i] * np.math.factorial(ny[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
+		psi_x = (1/np.sqrt(2**psi_2DH0_nx[i] * np.math.factorial(psi_2DH0_nx[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
+		psi_y = (1/np.sqrt(2**psi_2DH0_ny[i] * np.math.factorial(psi_2DH0_ny[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
 		psi_array.append(psi_x * psi_y)
 	return reduce(np.multiply, psi_array)
 
@@ -121,8 +114,7 @@ def plotPsi0():
 # if v = 1, the potential is 0 everywhere
 # if v = 2, the potential for a harmonic oscillator
 def calcV():
-	v = consts["paramètres utilisateurs"]["V"]
-	match v:
+	match V_id:
 		case "Image":
 			return calcVFromImage()
 		case "Null":
@@ -137,7 +129,7 @@ def calcV():
 # if psi = 1, use a solution of the 2D-HO
 # if psi = 2, use a combination of solution of the 2D-HO
 def calcPsi():
-	match consts["paramètres utilisateurs"]["psi"]["type"]:
+	match psi_type:
 		case 0:
 			return calcGaussPsi0()
 		case 1:

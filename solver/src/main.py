@@ -15,7 +15,8 @@ if (len(sys.argv) != 2):
 json_path = sys.argv[1]
 
 # Read JSON file
-exp_name, nx, ny, x_min, x_max, y_min, y_max, method, t_max, dt = js_uti.get_json(json_path)
+(exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, kx, ky, 
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
 
 # Definition of V (will be retrived in the DB)
 x_vec = np.linspace(x_min, x_max, nx)
@@ -24,12 +25,12 @@ X, Y = np.meshgrid(x_vec, y_vec)
 
 m = 1.0
 omega = 1.0
+
 # Potentiel harmonique 2D
 V = 0.5 * m * omega**2 * (X**2 + Y**2)
 
 x0, y0 = -3.0, -3.0         # centre de la gaussienne
 sigma = 1.0           # largeur
-kx, ky = 0.0, 0.0     # impulsion (met 0 pour onde stationnaire)
 
 # Amplitude gaussienne
 A = 1.0 / (sigma * np.sqrt(2 * np.pi))
@@ -45,7 +46,7 @@ psi_imag = np.imag(psi)
 psi_abs2 = np.abs(psi)**2
 
 # TEMPORARY 
-#db.CreateExperience(exp_name, "json_path", V)
+db.CreateExperience(exp_name, "../consts.JSON", V)
 
 # Retrive data from de DB
 #V = db.GetPotential(exp_name)
@@ -65,13 +66,13 @@ match method:
 		while info.t < t_max:
 			solver.FTCS_derivation(psi_real, psi_imag, info)
 			# Write the files in the DB
-			re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
-			im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
-			np.savetxt(re_filename, psi_real, delimiter=',')
-			np.savetxt(im_filename, psi_imag, delimiter=',')
-			print("File", info.stepcounter, "written")
-			#db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
-			#print("File", info.stepcounter, "written in the database")
+			#re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
+			#im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
+			#np.savetxt(re_filename, psi_real, delimiter=',')
+			#np.savetxt(im_filename, psi_imag, delimiter=',')
+			#print("File", info.stepcounter, "written")
+			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
+			print("File", info.stepcounter, "written in the database")
 		print("FTCS completed")
 	case "BTCS":
 		while info.t < t_max:
