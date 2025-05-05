@@ -2,7 +2,7 @@
 
 all: display
 
-display:
+vtr:
 	../psa_venv/bin/python3 main.py ../consts.JSON
 
 clean:
