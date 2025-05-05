@@ -45,7 +45,7 @@ psi_imag = np.imag(psi)
 psi_abs2 = np.abs(psi)**2
 
 # TEMPORARY 
-#db.CreateExperience(exp_name, "json_path", V)
+db.CreateExperience(exp_name, "../consts.JSON", V)
 
 # Retrive data from de DB
 #V = db.GetPotential(exp_name)
