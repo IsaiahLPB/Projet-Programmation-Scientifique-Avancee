@@ -22,8 +22,8 @@
         },
         "V": 0,
         "image_V": "degrade_horizontal.png",
-        "method": 1,
+        "method": "FTCS",
         "dt": "default",
-        "t_max": 100
+        "t_max": 10
     }
 }

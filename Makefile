@@ -11,8 +11,8 @@ fieldgen:
 
 solver:
 	make -C solver/src
-	psa_venv/bin/python3 solver/src/main.py 
-	psa_venv/bin/python3 solver/src/display.py
+	psa_venv/bin/python3 solver/src/main.py consts.JSON
+	psa_venv/bin/python3 solver/display.py
 
 postproc:
 

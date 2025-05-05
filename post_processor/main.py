@@ -53,7 +53,8 @@ def main():
     
     try:
         # Récupération des paramètres depuis le fichier JSON
-        exp_name, nx, ny, x_min, x_max, y_min, y_max, method, t_max, dt = js_uti.get_json(json_path)
+        (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y, 
+         psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json("../consts.JSON")
         print(f"Nom de l'expérience: {exp_name}")
         print(f"Dimensions: {nx}x{ny}")
         
