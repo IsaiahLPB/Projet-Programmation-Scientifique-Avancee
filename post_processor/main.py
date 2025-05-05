@@ -2,43 +2,44 @@ import numpy as np
 import sys
 import os
 import json
-import time
-import vtk
-from pyevtk.hl import imageToVTK
+from pyevtk.hl import gridToVTK
 
 # Ajoute la racine du projet au path Python
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import database.databaseManager as db
 import json_utils as js_uti
 
-def create_vti_files(exp_name, state_list, nx, ny, output_dir="./output"):
-    """Crée un fichier VTI pour chaque état temporel."""
+def create_vtr_files(exp_name, state_list, x_min, x_max, y_min, y_max, nx, ny, output_dir="./vtr_files"):
+    """Crée un fichier VTR pour chaque état temporel."""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    dx, dy, dz = 1.0, 1.0, 1.0
-    
     file_paths = []
+    
     for idx, state in enumerate(state_list):
         t, psi_re, psi_im = state
+        
         # Calcul de la densité de probabilité
         psi_squared = psi_re**2 + psi_im**2
+        
         # Reshape pour avoir la bonne forme (nx, ny, 1)
         psi_squared = psi_squared.reshape((ny, nx, 1))
         
         # Nom du fichier avec l'index temporel
         filename = f"{output_dir}/wave_density_{idx:04d}"
         
-        # Export en VTI
-        imageToVTK(
+        # Export en VTR
+        x = np.linspace(x_min, x_max, nx, dtype=np.float32)
+        y = np.linspace(y_min, y_max, ny, dtype=np.float32)
+        z = np.linspace(0.0, np.max(psi_squared), 1, dtype=np.float32)
+        
+        gridToVTK(
             filename,
-            origin=(0, 0, 0),
-            spacing=(dx, dy, dz),
+            x, y, z,
             pointData={"density": psi_squared}
         )
-        
-        file_paths.append(f"{filename}.vti")
-        print(f"Fichier généré: {filename}.vti (t={t})")
+        file_paths.append(f"{filename}.vtr")
+        print(f"Fichier généré: {filename}.vtr (t={t})")
     
     return file_paths
 
@@ -53,8 +54,9 @@ def main():
     
     try:
         # Récupération des paramètres depuis le fichier JSON
-        (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y, 
-         psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json("../consts.JSON")
+        (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y,
+         psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
+        
         print(f"Nom de l'expérience: {exp_name}")
         print(f"Dimensions: {nx}x{ny}")
         
@@ -66,11 +68,11 @@ def main():
         
         print(f"Nombre d'états temporels: {len(state_list)}")
         
-        # Créer les fichiers VTI pour chaque état
-        file_paths = create_vti_files(exp_name, state_list, nx, ny)
+        # Créer les fichiers VTR pour chaque état
+        file_paths = create_vtr_files(exp_name, state_list, x_min, x_max, y_min, y_max, nx, ny)
         
         return 0
-        
+    
     except FileNotFoundError as fnf:
         print(f"Erreur: Fichier non trouvé : {fnf}")
         return 1
