@@ -10,8 +10,8 @@ username, password, host, dbname = 'user0', 'pwd0', '127.0.0.1', 'results'
 client = MongoClient('mongodb://%s:%s@%s/%s' % (username, password, host, dbname))
 db = client.results
 
-def AlreadyExist(collectionName, collectionList):
-    for elt in collectionList:
+def AlreadyExist(collectionName):
+    for elt in db.list_collection_names():
         if elt == collectionName:
             return True
     return False
@@ -26,7 +26,7 @@ def AlreadyExistHash(hashCode):
 
 def DeleteCollection(collectionName):
     try:
-        if AlreadyExist(collectionName, db.list_collection_names()):
+        if AlreadyExist(collectionName):
             db.drop_collection(collectionName)
         else:
             print(collectionName + " doesn't exist, cannot delete a non existing collection")
@@ -36,7 +36,7 @@ def DeleteCollection(collectionName):
 
 def CreateExperience(experienceName, jsonFile, jsonHash, potential):
     try:
-        if AlreadyExist(experienceName, db.list_collection_names()):
+        if AlreadyExist(experienceName):
             print(experienceName + " already exist, cannot overright an existing collection")
         else:
             experience = db[experienceName]
@@ -51,7 +51,7 @@ def CreateExperience(experienceName, jsonFile, jsonHash, potential):
 
 def InsertMatrix(experienceName, time, psiRe, psiIm):
     try:
-        if AlreadyExist(experienceName, db.list_collection_names()):
+        if AlreadyExist(experienceName):
             experience = db[experienceName]
 
             psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
@@ -67,7 +67,7 @@ def InsertMatrix(experienceName, time, psiRe, psiIm):
 
 def GetPotential(experienceName):
     try:
-        if AlreadyExist(experienceName, db.list_collection_names()):
+        if AlreadyExist(experienceName):
             experience = db[experienceName]
 
             for data in experience.find({"Init": True}):
@@ -82,7 +82,7 @@ def GetPotential(experienceName):
 
 def GetJsonFile(experienceName):
     try:
-        if AlreadyExist(experienceName, db.list_collection_names()):
+        if AlreadyExist(experienceName):
             experience = db[experienceName]
 
             for data in experience.find({"Init": True}):
@@ -97,7 +97,7 @@ def GetJsonFile(experienceName):
 
 def GetLastState(experienceName):
     try:
-        if AlreadyExist(experienceName, db.list_collection_names()):
+        if AlreadyExist(experienceName):
             experience = db[experienceName]
 
             lastTime = -1
@@ -117,7 +117,7 @@ def GetLastState(experienceName):
 
 def GetStates(experienceName):
     try:
-        if AlreadyExist(experienceName, db.list_collection_names()):
+        if AlreadyExist(experienceName):
             experience = db[experienceName]
 
             stateList = []
@@ -151,7 +151,7 @@ def test():
     print(db.list_collection_names())
 
     #test the case where CreateExperience can create an experience
-    CreateExperience('test', 'json.json', np.eye(3))
+    CreateExperience('test', 'json.json', 'oui', np.eye(3))
     #test the case where InsertMatrix can add an element to the experience
     InsertMatrix('test', 0, np.eye(3),np.eye(3))
     print(db.list_collection_names())
@@ -167,3 +167,6 @@ def test():
     print(GetJsonFile('test'))
     print(GetLastState('test'))
     print(GetStates('test'))
+
+    print(AlreadyExistHash('non'))
+    print(AlreadyExistHash('oui'))
