@@ -10,13 +10,13 @@ import os
 
 # Ajoute la racine du projet au path Python
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-import database.databaseManager as db 
+import database.databaseManager as db
 import json_utils as js_uti
 
 # Read JSON file
 (exp_name, n_x, n_y, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y, 
- psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json("../consts.JSON")
- 
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, x0, y0, V_id, image_V, method, t_max, dt) = js_uti.get_json("../consts.JSON")
+
 
 # Initialize the potential grid
 Vmat = np.zeros((n_x, n_y))
@@ -47,8 +47,6 @@ def plotV():
 	plt.show()
 
 def calcGaussPsi0():
-	x0 = -1*consts["paramètres utilisateurs"]["psi"]["x0"]
-	y0 = consts["paramètres utilisateurs"]["psi"]["y0"]
 	A = np.sqrt(2 / np.pi * (w**2))
 	x = np.linspace(x0-10, x0+10, n_x)
 	y = np.linspace(y0-10, y0+10, n_y)
@@ -173,18 +171,29 @@ def main():
 	hash = calcJSONHash()
 	print("Hash of the experiment: ", hash)
 	# if the name already exists : inform the user that an expriment with the same name already exists
-	#if db.AlreadyExist(hash, db.):
-		#print("An experiment with the same name already exists")
-		# ask the user if he wants to overwrite the experiment
-		# if yes, overwrite the experiment
-		# if no, ask the user for a new name and end the program
-		# -> ask the user if he wants to overwrite the experiment
-		# -> if yes, overwrite the experiment
-		# -> if no, ask the user for a new name and end the program
-		#db.DeleteCollection(hash)
-	# -> ask the user if he wants to overwrite the experiment
-	# -> if yes, overwrite the experiment
-	# -> if no, ask the user for a new name and end the program
+	val = True
+	if db.AlreadyExist(exp_name, db.list_collection_names()): # AUCUNE IDÉE DE SI ÇA MARCHE OU PAS
+		print("An experiment with the same name already exists.\nDo you want to overwrite it ? (y/n)\n")
+		while val:
+			input = input()
+			if input == "y":
+				print("Overwriting the experiment...")
+				val = False
+			elif input == "n":
+				print("Please choose a new name for the experiment:\n")
+				exp_name = input()
+				val = False
+			elif input == "exit":
+				exit(1)
+			else:
+				print("Invalid input, please choose y or n")
+	
+	if not db.AlreadyExistHash(hash):
+		file = "../consts.JSON"
+		with open(file, "r", encoding="utf-8") as f:
+			data = json.load(f)
+		db.CreateExperience(exp_name, data, hash, Vmat)
+		db.InsertMatrix(exp_name, 0, psi0Re, psi0Im)
 	# Send the data in the database if the experiment is not already done
 	# if the hash already exists : check the t_max value :
 	# -> if t_max is the same, inform the user that an expriment with the same hash already exists
