@@ -5,6 +5,7 @@ import json
 import hashlib
 from functools import reduce
 import matplotlib.image as mpimg
+#import database.databaseManager as db
 
 with open("../consts.JSON", "r", encoding="utf-8") as file:
     consts = json.load(file)
@@ -47,9 +48,11 @@ def plotV():
 	plt.show()
 
 def calcGaussPsi0():
+	x0 = -1*consts["paramètres utilisateurs"]["psi"]["x0"]
+	y0 = consts["paramètres utilisateurs"]["psi"]["y0"]
 	A = np.sqrt(2 / np.pi * (w**2))
-	x = np.linspace(-10, 10, n_x)
-	y = np.linspace(-10, 10, n_y)
+	x = np.linspace(x0-10, x0+10, n_x)
+	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
 	psi0Re = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.cos(kx * X + ky * Y)
 	psi0Im = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.sin(kx * X + ky * Y)
@@ -103,13 +106,13 @@ def plotPsi0():
 	plt.imshow(psi0Real, cmap='hot', interpolation='nearest')
 	plt.colorbar()
 	plt.title('Partie réelle de psi0')
-	plt.axis('off')
+	plt.axis('on')
 
 	plt.subplot(1, 2, 2)
 	plt.imshow(psi0Comp, cmap='hot', interpolation='nearest')
 	plt.colorbar()
 	plt.title('Partie imaginaire de psi0')
-	plt.axis('off')
+	plt.axis('on')
 
 	plt.show()
 
@@ -120,11 +123,11 @@ def plotPsi0():
 def calcV():
 	v = consts["paramètres utilisateurs"]["V"]
 	match v:
-		case 0:
+		case "Image":
 			return calcVFromImage()
-		case 1:
+		case "Null":
 			return Vmat
-		case 2:
+		case "Harmonic":
 			return calcHarmV()
 		case _:
 			print("Not a valid value for v")
@@ -173,10 +176,20 @@ def main():
 	plotV()
 	# Calculate the wave function according to the psi value :
 	psi0Re, psi0Im = calcPsi()
+	plotPsi0()
 	# Calculate the hash of the experiment
 	hash = calcJSONHash()
 	print("Hash of the experiment: ", hash)
 	# if the name already exists : inform the user that an expriment with the same name already exists
+	#if db.AlreadyExist(hash, db.):
+		#print("An experiment with the same name already exists")
+		# ask the user if he wants to overwrite the experiment
+		# if yes, overwrite the experiment
+		# if no, ask the user for a new name and end the program
+		# -> ask the user if he wants to overwrite the experiment
+		# -> if yes, overwrite the experiment
+		# -> if no, ask the user for a new name and end the program
+		#db.DeleteCollection(hash)
 	# -> ask the user if he wants to overwrite the experiment
 	# -> if yes, overwrite the experiment
 	# -> if no, ask the user for a new name and end the program

@@ -18,7 +18,9 @@
             "type": 0,
             "nb": 1,
             "2DH0_nx": 3,
-            "2DH0_ny": 4
+            "2DH0_ny": 4,
+            "x0": 5,
+            "y0": -3
         },
         "V": 0,
         "image_V": "degrade_horizontal.png",
