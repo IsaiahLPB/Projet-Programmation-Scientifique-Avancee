@@ -1,4 +1,5 @@
 {
+    "name": "nom_de_l'experience2",
     "constantes": {
         "n_x": 101,
         "n_y": 101,
@@ -13,7 +14,6 @@
         "k_y": 0
     },
     "paramètres utilisateurs": {
-        "experience_name": "test",
         "psi": {
             "type": 0,
             "nb": 1,
@@ -21,7 +21,7 @@
             "2DH0_ny": 4
         },
         "V": 0,
-        "image_V": "/path/to/image",
+        "image_V": "degrade_horizontal.png",
         "method": "FTCS",
         "dt": "default",
         "t_max": 10
