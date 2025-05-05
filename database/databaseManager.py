@@ -16,6 +16,14 @@ def AlreadyExist(collectionName, collectionList):
             return True
     return False
 
+def AlreadyExistHash(hashCode):
+    for elt in db.list_collection_names():
+        exp = db[elt]
+        for data in exp.find({"Init": True}):
+            if data["Json_Hash"] == hashCode:
+                return True
+    return False
+
 def DeleteCollection(collectionName):
     try:
         if AlreadyExist(collectionName, db.list_collection_names()):
@@ -26,7 +34,7 @@ def DeleteCollection(collectionName):
     except pymongo.errors.OperationFailure as e:
         print("ERROR: %s" % (e))
 
-def CreateExperience(experienceName, jsonFile, potential):
+def CreateExperience(experienceName, jsonFile, jsonHash, potential):
     try:
         if AlreadyExist(experienceName, db.list_collection_names()):
             print(experienceName + " already exist, cannot overright an existing collection")
@@ -35,7 +43,7 @@ def CreateExperience(experienceName, jsonFile, potential):
 
             potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
 
-            data = { "Init": True, "Json_File": jsonFile, "Potential": potentialDB }
+            data = { "Init": True, "Json_File": jsonFile, "Json_Hash": jsonHash, "Potential": potentialDB }
             experience.insert_one(data)
 
     except pymongo.errors.OperationFailure as e:
@@ -133,7 +141,7 @@ def test():
     print(db.list_collection_names())
 
     #test cases where the program must do nothing in the database
-    CreateExperience('test', 'json.json', np.eye(3))
+    CreateExperience('test', 'json.json', 'oui', np.eye(3))
     InsertMatrix('new', 0, np.eye(3),np.eye(3))
     DeleteCollection('new')
     print(db.list_collection_names())
