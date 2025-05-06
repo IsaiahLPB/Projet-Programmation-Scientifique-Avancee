@@ -49,7 +49,7 @@ V. [Post Processor](index.html#)
 
 VI. [Résultats](index.html#)
 
-1.
+1. Fentes d'Young
 
 VII. [Expérience utilisateur](index.html#)
 
@@ -390,6 +390,42 @@ class: middle
 
 ---
 class: middle
+# IV - Solveur - Préparation au calcul
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+### Dans solver/src/main.py
+```python
+# Read JSON file
+(exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, kx, ky, 
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, x0, y0, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
+ 
+# Retrive data from de DB
+V = db.GetPotential(exp_name)
+info = TimeStepInfo()
+info.stepcounter = 0
+info.t, psi_real, psi_imag = db.GetLastState(exp_name)
+
+# Converts Numpy matrixes so that they have the same pattern in memory as Armadillo matrixes
+psi_real = np.array(psi_real, dtype=np.float64, order="F")
+psi_imag = np.array(psi_imag, dtype=np.float64, order="F")
+V = np.array(V, dtype=np.float64, order="F")
+solver = solver.Solver(V, json_path)
+
+```
+
+### Dans solver/src/TimeStepInfo.h
+```cpp
+#ifndef TIMESTEPINFO_H
+#define TIMESTEPINFO_H
+struct TimeStepInfo {
+    double t;
+    int stepcounter;
+};
+#endif
+```
+
+---
+class: middle
 # IV - Solveur - Constructeur du solveur
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
@@ -699,7 +735,7 @@ Il y a différentes étapes à exécuter par l'utilisateur pour lancer le projet
 
 - Télécharger MongoDB
 - Initialiser le projet
-- Lancer les ext_modules
+- Lancer les modules
 
 ### Initialisation dans Makefile
 ```Makefile
