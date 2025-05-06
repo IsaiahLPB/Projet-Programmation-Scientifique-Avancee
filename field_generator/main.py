@@ -154,16 +154,16 @@ def calcMult2DHOPsi0():
 	for i in range(psi_nb):
 		coeff_x = [0 for j in range(psi_2DH0_nx[i] - 1)]
 		coeff_x.append(1)
-		H3_x = Hermite([coeff_x])
+		H3_x = Hermite(coeff_x)
 		coeff_y = [0 for j in range(psi_2DH0_ny[i] - 1)]
 		coeff_y.append(1)
-		H3_y = Hermite([coeff_y])
+		H3_y = Hermite(coeff_y)
 
 		x = np.linspace(-10, 10, n_x)
 		y = np.linspace(-10, 10, n_y)
 		X, Y = np.meshgrid(x, y)
 		psi_x = (1/np.sqrt(2**psi_2DH0_nx[i] * sp.factorial(psi_2DH0_nx[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
-		psi_y = (1/np.sqrt(2**psi_2DH0_ny[i] * np.math.factorial(psi_2DH0_ny[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
+		psi_y = (1/np.sqrt(2**psi_2DH0_ny[i] * sp.factorial(psi_2DH0_ny[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
 		psi_array.append(psi_x * psi_y)
 	return reduce(np.multiply, psi_array)
 
