@@ -1,42 +1,42 @@
-# Projet_PSA
+# Projet_PSA  
 ### Simon Darnault, Arnault Marquis, Emre Onal
 
-## Préparer l'environnement
-Ce projet utilise MongoDC pour stocker les données en local sur la machine. L'utilisateur doit installer MongoDB avant de lancer des calculs. La procédure pour l'installation est décrite sur [ce site](https://www.mongodb.com/docs/manual/administration/install-community/).
+## Préparer l'environnement  
+Ce projet utilise MongoDB pour stocker les données en local sur la machine. L'utilisateur doit installer MongoDB avant de lancer des calculs. La procédure pour l'installation est décrite sur [ce site](https://www.mongodb.com/docs/manual/administration/install-community/).
 
-### La base de donnée
-Exécuter les commandes suivantes, une fois la base de donnée téléchargée.
-- ```systemctl start mongod.service```
-- ```mongosh mongodb://127.0.0.1```
-- ```use results```
+### La base de données  
+Exécuter les commandes suivantes, une fois la base de données téléchargée :  
+- ```systemctl start mongod.service```  
+- ```mongosh mongodb://127.0.0.1```  
+- ```use results```  
 - ```db.createUser({ user: "user0", pwd: "pwd0", roles: ["dbAdmin"]})```
 
-Pour afficher les différentes expériences dans la base de donée
+Pour afficher les différentes expériences dans la base de données :  
 - ```db.experienceName.find()```
 
-À la racine du projet utilisez la commande `make init` pour créer un environnement virtuel pour Python. Cela créra l'environnement virtuel et chargera les modules nécessaires au bon déroulement du projet. Cette commande crée ensuite les bindings Python, qui permettent d'appeler des fonctions C++ depuis un programme Python.
+À la racine du projet, utilisez la commande `make init` pour créer un environnement virtuel pour Python. Cela créera l'environnement virtuel et chargera les modules nécessaires au bon déroulement du projet. Cette commande crée ensuite les bindings Python, qui permettent d'appeler des fonctions C++ depuis un programme Python.
 
 Dans un premier temps, modifiez le fichier *consts.JSON* à la racine du projet pour modifier les paramètres de l'expérience que vous souhaitez réaliser.
 
-## Préparer un expérience
-Le champs **V** doit correspondre à une entrée parmi : **Harmonic**, **Null** et **Image**, qui permettent de créer respectivement, un poteniel harmonique, un nul et de définir le potentiel à partir d'une image en niveau de gris.
+## Préparer une expérience  
+Le champ **V** doit correspondre à une entrée parmi : **Harmonic**, **Null** et **Image**, qui permettent de créer respectivement un potentiel harmonique, un nul et de définir le potentiel à partir d'une image en niveaux de gris.
 
-Le champs **image_V** doit correspondre au nom de l'image souhaité. Les images doit être stockée dans le dossier *images* à la racine. Deux images sont déjà disponible dans le dossier.
+Le champ **image_V** doit correspondre au nom de l'image souhaitée. Les images doivent être stockées dans le dossier *images* à la racine. Deux images sont déjà disponibles dans le dossier.
 
-Le champs **type** pour **psi** doit correspondre à une des trois entrées suivantes : "Gaussian" pour simuler un vague gaussienne, "2DH0" pour simuler une solution d'un oscillateur harmonique ou "2DH0-mult" pour une combinaisson de solutions d'oscillateur harmonique.
+Le champ **type** pour **psi** doit correspondre à une des trois entrées suivantes : "Gaussian" pour simuler une vague gaussienne, "2DH0" pour simuler une solution d'un oscillateur harmonique ou "2DH0-mult" pour une combinaison de solutions d'oscillateur harmonique.
 
-## Lancer une expérience
-Ensuite, entrez la commande `make exp` pour commencer l'expérience paramétrée dans le fichier JSON. Cela lance les trois modules de notre projet à la suite.
+## Lancer une expérience  
+Ensuite, entrez la commande `make exp` pour commencer l'expérience paramétrée dans le fichier JSON. Cela lance les trois modules de notre projet à la suite :
 
-À savoir:
-- **Le field generator** qui permet d'initialiser une expérience et la base de donnée
-- **Le solveur** qui calcul les différentes matrices et les écrit dans la base de donnée
-- **Le post processor** qui crée les fichers VTK des matrices d'une expérience sauvegardée dans la base de donnée
+À savoir :  
+- **Le field generator** qui permet d'initialiser une expérience et la base de données  
+- **Le solveur** qui calcule les différentes matrices et les écrit dans la base de données  
+- **Le post processor** qui crée les fichiers VTK des matrices d'une expérience sauvegardée dans la base de données
 
-Il est aussi possible de lancer chaque module indépendament avec:
-- ```make field_generator```
-- ```make solver```
+Il est aussi possible de lancer chaque module indépendamment avec :  
+- ```make field_generator```  
+- ```make solver```  
 - ```make post_processor```
 
-## Visualiser les résultats
-Pour visualiser les résultats, vous pouvez utiliser [Paraview](https://www.paraview.org/download/) et y charger les fichers VTK.
+## Visualiser les résultats  
+Pour visualiser les résultats, vous pouvez utiliser [Paraview](https://www.paraview.org/download/) et y charger les fichiers VTK.
