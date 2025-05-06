@@ -36,6 +36,9 @@ III. [Field generator](index.html#)
 
 1. Fichier d'entrée JSON
 2. Fonctionnement du Field generator
+3. Création du Hash du fichier JSON
+4. Calcul du potentiel
+5. Calcul de psi
 
 IV. [Solveur Implémentation](index.html#)
     
@@ -313,12 +316,12 @@ L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il 
 
 ---
 class: middle
-# III - Field generator - Fonctionnement du main
+# III - Field generator - Fonctionnement du main (1/2)
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 ## Fonctionnement global du field_generator :
 
-#### Dans main.py
+#### Dans field_generator/main.py
 
 On calcule d'abord le potentiel, la fonction d'onde psi et le hash du  fichier JSON associé à l'expérience.
 
@@ -343,10 +346,10 @@ def main():
 
 ---
 class: middle
-# III - Field generator - Différents Psi_0 calculés
+# III - Field generator - Fonctionnement du main (2/2)
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-#### Dans main.py
+#### Dans field_generator/main.py
 
 ```python
     val = True
@@ -367,7 +370,7 @@ class: middle
                 elif u_input == "exit":
                     exit(1)
                 else:
-                    print("Invalid input, please choose y or n")
+                    print("Invalid input, please choose y or N")
 
     if not db.AlreadyExistHash(hash):
         file = "../consts.JSON"
@@ -376,6 +379,104 @@ class: middle
         db.CreateExperience(exp_name, data, hash, Vmat)
         db.InsertMatrix(exp_name, 0, psi0Re, psi0Im)
         print("Experience initialized")
+```
+
+---
+class: middle
+# III - Field generator - Hash du fichier JSON
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans field_generator/main.py
+```python
+def dataCleaner(data):
+	modified_data = dict(data)
+	modified_data.pop("name", None)
+	
+	param = modified_data.get("paramètres utilisateurs")
+	if param and "t_max" in param:
+		param.pop("t_max", None)
+	
+	return modified_data
+
+def calcJSONHash():
+    file = "../consts.JSON"
+	with open(file, "r", encoding="utf-8") as f:
+		data = json.load(f)
+	
+	data = dataCleaner(data)
+
+	json_normalized = json.dumps(data, sort_keys=True, separators=(',', ':'))
+
+	hash = hashlib.sha256(json_normalized.encode("utf-8"))
+
+	return hash.hexdigest()
+```
+
+---
+class: middle
+# III - Field generator - Calcul du potentiel
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans field_generator/main.py
+```python
+def calcV():
+	match V_id:
+		case "Image":
+			return calcVFromImage()
+		case "Null":
+			return Vmat
+		case "Harmonic":
+			return calcHarmV()
+		case _:
+			print("Not a valid value for v")
+			exit(2)
+
+def calcVFromImage():
+	img = mpimg.imread(image_V)
+
+    if img.ndim == 2:
+		gray = img
+	else:
+		if img.shape[2] == 4:
+			img_rgb = img[:, :, :3]
+		else:
+			img_rgb = img
+		gray = np.dot(img_rgb, [0.2989, 0.5870, 0.1140])
+		gray = gray / 255 * 2500
+	return gray
+```
+
+---
+class: middle
+# III - Field generator - Calcul de psi
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+#### Dans field_generator/main.py
+```python
+def calcGaussPsi0():
+	A = np.sqrt(1 / np.pi * (w**2))
+	x = np.linspace(x0-10, x0+10, n_x)
+	y = np.linspace(y0-10, y0+10, n_y)
+	X, Y = np.meshgrid(x, y)
+	psi0Re = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.cos(k_x * X + k_y * Y)
+	psi0Im = A * np.exp(- (X**2 + Y**2) / (2 * w**2)) * np.sin(k_x * X + k_y * Y)
+	return psi0Re, psi0Im
+
+def calc2DHOPsi0():
+	coeff_x = [0 for i in range(psi_2DH0_nx - 1)]
+	coeff_x.append(1)
+	print("coeff_x", coeff_x)
+	H3_x = Hermite(coeff_x)
+	coeff_y = [0 for i in range(psi_2DH0_ny - 1)]
+	coeff_y.append(1)
+	H3_y = Hermite(coeff_y)
+
+	x = np.linspace(-10, 10, n_x)
+	y = np.linspace(-10, 10, n_y)
+	X, Y = np.meshgrid(x, y)
+	psi_x = (1/np.sqrt(2**psi_2DH0_nx * sp.factorial(psi_2DH0_nx))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
+	psi_y = (1/np.sqrt(2**psi_2DH0_ny * sp.factorial(psi_2DH0_ny))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
+    return psi_x * psi_y
 ```
 
 ---
