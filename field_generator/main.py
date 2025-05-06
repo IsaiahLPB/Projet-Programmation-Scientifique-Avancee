@@ -50,8 +50,11 @@ def calcVFromImage():
 	@param None
 	@return img : The potential matrix
 	"""
+
 	img = mpimg.imread(image_V)
-	return img
+	gray = np.dot(img, [0.2989, 0.5870, 0.1140])
+
+	return gray
 
 def plotV():
 	"""
@@ -249,13 +252,13 @@ def main():
 	# if the name already exists : inform the user that an expriment with the same name already exists
 	val = True
 	if db.AlreadyExist(exp_name):
+		print("An experiment with the same name already exists.")
 		if db.AlreadyExistHash(hash):
 			val = False
-		print("An experiment with the same name already exists.")
 		while val:
 			u_input = input("Do you want to overwrite it ? (y/N) : ")
 			if u_input == "y":
-				print("Overwriting the experiment...")
+				db.DeleteCollection(exp_name)
 				val = False
 			elif u_input == "N":
 				exp_name = input("Please choose a new name for the experiment: ")
