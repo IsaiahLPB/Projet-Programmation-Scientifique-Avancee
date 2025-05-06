@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 
 # Adding root of the project to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import database.databaseManager as db
 import json_utils as js_uti
 
