@@ -65,22 +65,22 @@ def calcVFromImage():
 
 	img = mpimg.imread(image_V)
 
-    # Vérifier si l'image est en niveaux de gris ou en couleur
+    # Check if the image is grayscale or color
 	if img.ndim == 2:
-    # Image en niveaux de gris
+    # If grayscale, no need to convert
 		gray = img
 	else:
-		# Image en couleur (RGB ou RGBA)
+		# If color, convert to grayscale
 		if img.shape[2] == 4:
-			# Exclure le canal alpha
+			# If RGBA, take only the RGB channels
 			img_rgb = img[:, :, :3]
 		else:
 			img_rgb = img
 
-    	# Convertir en niveaux de gris
+    	# Convert to grayscale using the luminosity method
 		gray = np.dot(img_rgb, [0.2989, 0.5870, 0.1140])
 
-		gray = gray / 255 * 100000000 # Valeur arbitraire
+		gray = gray / 255 * 2500
 
 	return gray
 

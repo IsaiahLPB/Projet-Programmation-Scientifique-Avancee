@@ -241,6 +241,13 @@ void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
     }
 }
 
+/**
+ * @brief This function computes the norm of the wave function
+ *
+ * @param psi_real Real part of the matrix
+ * @param psi_imag Imaginary part of the matrix
+ * @return double The norm of the wave function
+ */
 double Solver::Calc_norm(arma::mat &psi_real, arma::mat &psi_imag)
 {
     double norm = 0.0;
