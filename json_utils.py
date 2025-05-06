@@ -33,6 +33,7 @@ def get_json(path):
     
     V = param["V"]
     image_V = param["image_V"]
+    image_V = f"../images/{image_V}"
     method = param["method"]
     t_max = param["t_max"]
     dt = param["dt"]
