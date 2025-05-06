@@ -39,6 +39,7 @@ public:
   int ny_2;
   int nx_3;
   int ny_3;
+  double dt_2;
   int t_max;
 
   std::string method;

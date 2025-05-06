@@ -86,6 +86,7 @@ Solver::Solver(mat V, const char *path)
     ny_2 = ny-2;
     nx_3 = nx-3;
     ny_3 = ny-3;
+    dt_2 = dt/2;
 
     psi_real_next.zeros(nx, ny);
     psi_imag_next.zeros(nx, ny);
@@ -131,7 +132,7 @@ void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
                 )
             );
 
-        // Swap pointers instead of copying matrixes
+        // Swap pointers instead of copying matrices
         std::swap(psi_real, psi_real_next);
         std::swap(psi_imag, psi_imag_next);
 
@@ -165,7 +166,7 @@ void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
             psi_real_prev = psi_real_next;
             psi_imag_prev = psi_imag_next;
             
-            // BTCS method: use values at t+dt for the Laplacian
+            // BTCS method
             psi_real_next.submat(1, 1, nx_2, ny_2) = 
                 psi_real.submat(1, 1, nx_2, ny_2)
                 - dt * (
@@ -200,6 +201,7 @@ void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
             max_diff = std::max(diff_real.max(), diff_imag.max());
             
             iter_count++;
+            if(iter_count==max_iter){cout << "MAX_ITER reached without convergence" << endl;}
         }
         
         // Once convergence is reached, update the main matrices
@@ -221,68 +223,94 @@ void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
  */
 void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-    // Temporary matrixes for iterations
-    mat psi_real_new = psi_real;
-    mat psi_imag_new = psi_imag;
-    mat psi_real_next, psi_imag_next;
-    
     for (int i = 0; i < 5; ++i)
     {
+        // Première approximation par la méthode d'Euler
         psi_real_next = psi_real;
         psi_imag_next = psi_imag;
         
-        double max_diff = 1.0;  // Initial value above epsilon
+        // Méthode d'Euler pour la première approximation
+        psi_real_next.submat(1, 1, nx_2, ny_2) = psi_real.submat(1, 1, nx_2, ny_2)
+            - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                + coef_x * (psi_imag.submat(2, 1, nx_1, ny_2) + psi_imag.submat(0, 1, nx_3, ny_2))
+                + coef_y * (psi_imag.submat(1, 2, nx_2, ny_1) + psi_imag.submat(1, 0, nx_2, ny_3))
+            );
+            
+        psi_imag_next.submat(1, 1, nx_2, ny_2) = psi_imag.submat(1, 1, nx_2, ny_2)
+            + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2)
+                + coef_x * (psi_real.submat(2, 1, nx_1, ny_2) + psi_real.submat(0, 1, nx_3, ny_2))
+                + coef_y * (psi_real.submat(1, 2, nx_2, ny_1) + psi_real.submat(1, 0, nx_2, ny_3))
+            );
+        
+        // Raffiner par itérations
+        double max_diff = 1.0; // Valeur initiale supérieure à epsilon
         int iter_count = 0;
-        const int max_iter = 100;  // Maximum number of iteration (to prevent infite loop)
         
         while (max_diff > epsilon && iter_count < max_iter)
         {
-            // Save previous solutions to compute the difference
-            mat psi_real_prev = psi_real_next;
-            mat psi_imag_prev = psi_imag_next;
+            // Sauvegarder les solutions précédentes pour calculer la différence
+            psi_real_prev = psi_real_next;
+            psi_imag_prev = psi_imag_next;
             
-            // Using BTCS method to compute values at t+dt
-            psi_real_next.submat(1, 1, nx_2, ny_2) = 
+            // Méthode CTCS
+            psi_real_next.submat(1, 1, nx_2, ny_2) =
                 psi_real.submat(1, 1, nx_2, ny_2)
                 - dt * (
-                    A % psi_imag_next.submat(1, 1, nx_2, ny_2)
+                    A % (psi_imag.submat(1, 1, nx_2, ny_2) +
+                        psi_imag_next.submat(1, 1, nx_2, ny_2)
+                    ) / 2.0
                     + coef_x * (
+                        psi_imag.submat(2, 1, nx_1, ny_2) +
+                        psi_imag.submat(0, 1, nx_3, ny_2) +
                         psi_imag_next.submat(2, 1, nx_1, ny_2) +
                         psi_imag_next.submat(0, 1, nx_3, ny_2)
-                    )
+                    ) / 2.0
                     + coef_y * (
+                        psi_imag.submat(1, 2, nx_2, ny_1) +
+                        psi_imag.submat(1, 0, nx_2, ny_3) +
                         psi_imag_next.submat(1, 2, nx_2, ny_1) +
                         psi_imag_next.submat(1, 0, nx_2, ny_3)
-                    )
+                    ) / 2.0
                 );
                 
-            psi_imag_next.submat(1, 1, nx_2, ny_2) = 
+            psi_imag_next.submat(1, 1, nx_2, ny_2) =
                 psi_imag.submat(1, 1, nx_2, ny_2)
                 + dt * (
-                    A % psi_real_next.submat(1, 1, nx_2, ny_2)
+                    A % (psi_real.submat(1, 1, nx_2, ny_2) +
+                        psi_real_next.submat(1, 1, nx_2, ny_2)
+                    ) / 2.0
                     + coef_x * (
+                        psi_real.submat(2, 1, nx_1, ny_2) +
+                        psi_real.submat(0, 1, nx_3, ny_2) +
                         psi_real_next.submat(2, 1, nx_1, ny_2) +
                         psi_real_next.submat(0, 1, nx_3, ny_2)
-                    )
+                    ) / 2.0
                     + coef_y * (
+                        psi_real.submat(1, 2, nx_2, ny_1) +
+                        psi_real.submat(1, 0, nx_2, ny_3) +
                         psi_real_next.submat(1, 2, nx_2, ny_1) +
                         psi_real_next.submat(1, 0, nx_2, ny_3)
-                    )
+                    ) / 2.0
                 );
-            
-            // Compute the maximal difference to check convergence
-            mat diff_real = abs(psi_real_next - psi_real_prev);
-            mat diff_imag = abs(psi_imag_next - psi_imag_prev);
+                
+            // Calculer la différence maximale pour vérifier la convergence
+            diff_real = abs(psi_real_next - psi_real_prev);
+            diff_imag = abs(psi_imag_next - psi_imag_prev);
             max_diff = std::max(diff_real.max(), diff_imag.max());
-            
             iter_count++;
+            
+            if(iter_count == max_iter) {
+                cout << "MAX_ITER reached without convergence" << endl;
+            }
         }
         
-        // Swap pointers instead of copying matrixes
-        std::swap(psi_real, psi_real_next);
-        std::swap(psi_imag, psi_imag_next);
+        // Une fois la convergence atteinte, mettre à jour les matrices principales
+        psi_real = psi_real_next;
+        psi_imag = psi_imag_next;
         
-        // Update temporal informations
+        // Mettre à jour les informations temporelles
         info.stepcounter++;
         info.t += dt;
     }
