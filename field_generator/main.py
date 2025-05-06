@@ -107,7 +107,7 @@ def calcGaussPsi0():
 	@return psi0Re : The real part of the wave function
 	@return psi0Im : The imaginary part of the wave function
 	"""
-	A = np.sqrt(2 / np.pi * (w**2))
+	A = np.sqrt(1 / np.pi * (w**2))
 	x = np.linspace(x0-10, x0+10, n_x)
 	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
