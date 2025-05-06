@@ -19,7 +19,9 @@ json_path = Path(sys.argv[1])
 
 if not json_path.is_file():
 	print(f"{json_path} is not a valid file")
-	exit(1)        
+	exit(1) 
+	
+json_path = str(json_path)       
 
 # Read JSON file
 (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, kx, ky, 
