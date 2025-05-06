@@ -24,4 +24,17 @@ Le champs **V** doit correspondre à une entrée parmi : **Harmonic**, **Null** 
 Le champs **image_V** doit correspondre au nom de l'image souhaité. Les images doit être stockée dans le dossier *images* à la racine. Deux images sont déjà disponible dans le dossier.
 
 ## Lancer une expérience
-Ensuite, entrez la commande `make exp` pour commencer l'expérience paramétrée dans le fichier JSON.
+Ensuite, entrez la commande `make exp` pour commencer l'expérience paramétrée dans le fichier JSON. Cela lance les trois modules de notre projet à la suite.
+
+À savoir:
+- **Le field generator** qui permet d'initialiser une expérience et la base de donnée
+- **Le solveur** qui calcul les différentes matrices et les écrit dans la base de donnée
+- **Le post processor** qui crée les fichers VTK des matrices d'une expérience sauvegardée dans la base de donnée
+
+Il est aussi possible de lancer chaque module indépendament avec:
+- ```make field_generator```
+- ```make solver```
+- ```make post_processor```
+
+## Visualiser les résultats
+Pour visualiser les résultats, vous pouvez utiliser [Paraview](https://www.paraview.org/download/) et y charger les fichers VTK.
