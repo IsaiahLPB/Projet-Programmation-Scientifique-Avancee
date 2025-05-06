@@ -6,17 +6,31 @@ import numpy as np
 import bson
 import pickle
 
+#the basic user of the database to be able to log in
 username, password, host, dbname = 'user0', 'pwd0', '127.0.0.1', 'results'
 client = MongoClient('mongodb://%s:%s@%s/%s' % (username, password, host, dbname))
+#the database we use to keep our results
 db = client.results
 
 def AlreadyExist(collectionName):
+    """
+	@brief if the experience exists, it returns true, if the experience does not exist, it returns false.
+
+	@param a string that is the name of a collection representing an experience.
+	@return a boolean
+	"""
     for elt in db.list_collection_names():
         if elt == collectionName:
             return True
     return False
 
 def AlreadyExistHash(hashCode):
+    """
+	@brief if the hash code already exists in an experience, returne true, if it does not, return false.
+
+	@param the hash code of a json file.
+	@return a boolean
+	"""
     for elt in db.list_collection_names():
         exp = db[elt]
         for data in exp.find({"Init": True}):
@@ -24,7 +38,15 @@ def AlreadyExistHash(hashCode):
                 return True
     return False
 
+#DeleteCollection takes a string that is the name of a collection representing an experience.
+#
 def DeleteCollection(collectionName):
+    """
+	@brief if the collection exists, it delete it from the database.
+
+	@param a string that is the name of a collection representing an experience.
+	@return nothing
+	"""
     try:
         if AlreadyExist(collectionName):
             db.drop_collection(collectionName)
@@ -35,21 +57,30 @@ def DeleteCollection(collectionName):
         print("ERROR: %s" % (e))
 
 def CreateExperience(experienceName, jsonFile, jsonHash, potential):
+    """
+	@brief create a collection for the experience and put the json file, json hash and potential matrix into the collection.
+
+	@param a string that is the name of a collection representing an experience, a json file, the hash of a json file, a matrix that represent the potential
+	@return nothing
+	"""
     try:
-        if AlreadyExist(experienceName):
-            print(experienceName + " already exist, cannot overright an existing collection")
-        else:
-            experience = db[experienceName]
+        experience = db[experienceName]
 
-            potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
+        potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
 
-            data = { "Init": True, "Json_File": jsonFile, "Json_Hash": jsonHash, "Potential": potentialDB }
-            experience.insert_one(data)
+        data = { "Init": True, "Json_File": jsonFile, "Json_Hash": jsonHash, "Potential": potentialDB }
+        experience.insert_one(data)
 
     except pymongo.errors.OperationFailure as e:
         print("ERROR: %s" % (e))
 
 def InsertMatrix(experienceName, time, psiRe, psiIm):
+    """
+	@brief if the experience exists, put the state with the time and the matrixes in the collection.
+
+	@param a string that is the name of a collection representing an experience, the time of the state you want to put in the database, a matrix that represent the real part of Psi, a matrix that represent the imaginary part of Psi
+	@return nothing
+	"""
     try:
         if AlreadyExist(experienceName):
             experience = db[experienceName]
@@ -66,6 +97,12 @@ def InsertMatrix(experienceName, time, psiRe, psiIm):
         print("ERROR: %s" % (e))
 
 def GetPotential(experienceName):
+    """
+	@brief get the potential of the experience.
+
+	@param a string that is the name of a collection representing an experience.
+	@return mat: the potential of the experience.
+	"""
     try:
         if AlreadyExist(experienceName):
             experience = db[experienceName]
@@ -81,6 +118,12 @@ def GetPotential(experienceName):
         print("ERROR: %s" % (e))
 
 def GetJsonFile(experienceName):
+    """
+	@brief get the json file of the experience.
+
+	@param a string that is the name of a collection representing an experience.
+	@return filedata: the potential of the experience.
+	"""
     try:
         if AlreadyExist(experienceName):
             experience = db[experienceName]
@@ -96,6 +139,14 @@ def GetJsonFile(experienceName):
         print("ERROR: %s" % (e))
 
 def GetLastState(experienceName):
+    """
+	@brief get the last calculated state of the experience.
+
+	@param a string that is the name of a collection representing an experience.
+	@return lastTime: the last time of the experience.
+            psiRe: the real part of the last time of the experience
+            psiRe: the imaginary part of the last time of the experience
+	"""
     try:
         if AlreadyExist(experienceName):
             experience = db[experienceName]
@@ -116,6 +167,12 @@ def GetLastState(experienceName):
         print("ERROR: %s" % (e))
 
 def GetStates(experienceName):
+    """
+	@brief get all the states of the experience.
+
+	@param a string that is the name of a collection representing an experience.
+	@return stateList: the list of all the states of the experience.
+	"""
     try:
         if AlreadyExist(experienceName):
             experience = db[experienceName]
