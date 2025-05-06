@@ -308,7 +308,7 @@ L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il 
     },
     "user parameters": {
         "psi": {
-            "type": 0,
+            "type": "Gaussian",
             "nb": 1,
             "2DH0_nx": 2,
             "2DH0_ny": 0,
@@ -855,7 +855,7 @@ bindings:
 	@echo "========================== Creating C++ bindings ==========================="
 	@echo "..."
 	@make -s -C solver/src > /dev/null
-	@echo ""============================ Bindings created ============================="
+	@echo "============================ Bindings created ============================="
 	@echo ""
 	@echo ""
 ```
