@@ -17,7 +17,7 @@ bindings:
 	make -C solver/src
 
 solver:
-	psa_venv/bin/python3 solver/src/main.py consts.JSON
+	make -C solver/ run
 
 post_processor:
 	make -C post_processor/

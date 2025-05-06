@@ -7,15 +7,27 @@ from functools import reduce
 import matplotlib.image as mpimg
 import sys
 import os
+from pathlib import Path
 
-# Add the root of the project to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+# Adding root of the project to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 import database.databaseManager as db
 import json_utils as js_uti
 
+# Check the number of arguments
+if len(sys.argv) != 2:
+	print("Usage:", sys.argv[0], "<path/to/json>")
+	exit(1)
+
+json_path = Path(sys.argv[1])
+
+if not json_path.is_file():
+	print(f"{json_path} is not a valid file")
+	exit(1) 
+
 # Read JSON file
 (exp_name, n_x, n_y, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y, 
- psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, x0, y0, V_id, image_V, method, t_max, dt) = js_uti.get_json("../consts.JSON")
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, x0, y0, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
 
 
 # Initialize the potential grid

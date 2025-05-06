@@ -62,7 +62,8 @@ def main():
 
     if not json_path.is_file():
         print(f"{json_path} is not a valid file")
-    
+        return 1
+        
     try:
         # Get parameters from the JSON file
         (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y,
