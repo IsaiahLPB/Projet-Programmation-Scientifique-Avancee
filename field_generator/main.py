@@ -289,5 +289,6 @@ def main():
 			data = json.load(f)
 		db.CreateExperience(exp_name, data, hash, Vmat)
 		db.InsertMatrix(exp_name, 0, psi0Re, psi0Im)
+		print("Experience initialized")
 
 main()

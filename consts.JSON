@@ -1,5 +1,5 @@
 {
-    "name": "nom_de_l'experience2",
+    "name": "experience_name",
     "constantes": {
         "n_x": 101,
         "n_y": 101,
@@ -13,17 +13,17 @@
         "k_x": 0,
         "k_y": 0
     },
-    "paramètres utilisateurs": {
+    "user parameters": {
         "psi": {
             "type": 0,
             "nb": 1,
-            "2DH0_nx": 3,
-            "2DH0_ny": 4,
-            "x0": 5,
-            "y0": -3
+            "2DH0_nx": 0,
+            "2DH0_ny": 0,
+            "x0": 0,
+            "y0": 0
         },
-        "V": 0,
-        "image_V": "degrade_horizontal.png",
+        "V": "Harmonic",
+        "image_V": "",
         "method": "FTCS",
         "dt": "default",
         "t_max": 10

@@ -22,7 +22,7 @@ def get_json(path):
     k_y = constants["k_y"]
     
     # Get user parameters
-    param = data["paramètres utilisateurs"]
+    param = data["user parameters"]
     psi = param["psi"]
     psi_type = psi["type"]
     psi_nb = psi["nb"]

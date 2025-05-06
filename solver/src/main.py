@@ -16,19 +16,18 @@ json_path = sys.argv[1]
 
 # Read JSON file
 (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, kx, ky, 
- psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, x0, y0, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
 
 # Retrive data from de DB
 V = db.GetPotential(exp_name)
 info = TimeStepInfo()
 info.stepcounter = 0
 info.t, psi_real, psi_imag = db.GetLastState(exp_name)
-print(info.t)
 
-# Converti les matrices Numpy pour quelles aient le même ordre de stockage que les matrices Armadillon en mémoire
-V = np.asfortranarray(V)
-psi_real = np.asfortranarray(psi_real)
-psi_imag = np.asfortranarray(psi_imag)
+# Converts Numpy matrixes so that they have the same pattern in memory as Armadillo matrixes
+psi_real = np.array(psi_real, dtype=np.float64, order="F")
+psi_imag = np.array(psi_imag, dtype=np.float64, order="F")
+V = np.array(V, dtype=np.float64, order="F")
 
 solver = solver.Solver(V, json_path)
 
@@ -39,13 +38,8 @@ match method:
 			solver.FTCS_derivation(psi_real, psi_imag, info)
 
 			# Write the files in the DB
-			#re_filename = f"data/FTCS_psi_{info.stepcounter}_re.csv"
-			#im_filename = f"data/FTCS_psi_{info.stepcounter}_im.csv"
-			#np.savetxt(re_filename, psi_real, delimiter=',')
-			#np.savetxt(im_filename, psi_imag, delimiter=',')
-			#print("File", info.stepcounter, "written")
 			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
-			print("File", info.stepcounter, "written in the database")
+			#print("File", info.stepcounter, "written in the database")
 
 		print("FTCS completed")
 	case "BTCS":
@@ -55,7 +49,7 @@ match method:
 
 			# Write the files in the DB 
 			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
-			print("File", info.stepcounter, "written in the database")
+			#print("File", info.stepcounter, "written in the database")
 
 		print("BTCS completed")
 	case "CTCS":
@@ -65,12 +59,9 @@ match method:
 
 			# Write the files in the DB 
 			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
-			print("File", info.stepcounter, "written in the database")
+			#print("File", info.stepcounter, "written in the database")
 
 		print("CTCS completed")
 	case default:
 		print("This method is not implemented")
 		exit(1)
-
-
-

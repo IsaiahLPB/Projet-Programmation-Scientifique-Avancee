@@ -1,18 +1,24 @@
-.PHONY: venv solver
+.PHONY: venv field_generator bindings solver post_processor
 
-all: venv fieldgen solver postproc
+all: venv field_generator solver postproc
+
+exp:
+	make field_generator solver post_processor
 
 venv:
 	rm -rf psa_venv
 	python3 -m venv psa_venv && \
 	psa_venv/bin/pip install -r requirements.txt
 
-fieldgen:
+field_generator:
+	make -C field_generator/
+
+bindings:
+	make -C solver/src
 
 solver:
-	make -C solver/src
 	psa_venv/bin/python3 solver/src/main.py consts.JSON
-	psa_venv/bin/python3 solver/display.py
 
-postproc:
+post_processor:
+	make -C post_processor/
 
