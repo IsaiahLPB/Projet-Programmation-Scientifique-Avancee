@@ -52,7 +52,21 @@ def calcVFromImage():
 	"""
 
 	img = mpimg.imread(image_V)
-	gray = np.dot(img, [0.2989, 0.5870, 0.1140])
+
+    # Vérifier si l'image est en niveaux de gris ou en couleur
+	if img.ndim == 2:
+    # Image en niveaux de gris
+		gray = img
+	else:
+		# Image en couleur (RGB ou RGBA)
+		if img.shape[2] == 4:
+			# Exclure le canal alpha
+			img_rgb = img[:, :, :3]
+		else:
+			img_rgb = img
+
+    	# Convertir en niveaux de gris
+		gray = np.dot(img_rgb, [0.2989, 0.5870, 0.1140])
 
 	return gray
 
@@ -177,6 +191,7 @@ def calcV():
 			return calcHarmV()
 		case _:
 			print("Not a valid value for v")
+			exit
 
 # Calculate the wave function according to the psi value :
 # if psi = 0, use gaussian wave packet with initial speed
