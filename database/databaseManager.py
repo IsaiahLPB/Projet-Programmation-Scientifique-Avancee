@@ -236,4 +236,3 @@ def test_pres():
     print(GetJsonFile('Présentation'))
     print(GetPotential('Présentation'))
     print(GetStates('Présentation'))
-test_pres()
