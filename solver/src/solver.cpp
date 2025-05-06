@@ -222,11 +222,11 @@ void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
     for (int i = 0; i < 5; ++i)
     {
-        // Première approximation par la méthode d'Euler
+        // First approximation using Euler's method
         psi_real_next = psi_real;
         psi_imag_next = psi_imag;
         
-        // Méthode d'Euler pour la première approximation
+        // Euler method for the initial approximation
         psi_real_next.submat(1, 1, nx_2, ny_2) = psi_real.submat(1, 1, nx_2, ny_2)
             - dt * (
                 A % psi_imag.submat(1, 1, nx_2, ny_2)
@@ -241,17 +241,17 @@ void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
                 + coef_y * (psi_real.submat(1, 2, nx_2, ny_1) + psi_real.submat(1, 0, nx_2, ny_3))
             );
         
-        // Raffiner par itérations
-        double max_diff = 1.0; // Valeur initiale supérieure à epsilon
+        // Refine using iterations
+        double max_diff = 1.0; // Initial value greater than epsilon
         int iter_count = 0;
         
         while (max_diff > epsilon && iter_count < max_iter)
         {
-            // Sauvegarder les solutions précédentes pour calculer la différence
+            // Save previous solutions to compute the difference
             psi_real_prev = psi_real_next;
             psi_imag_prev = psi_imag_next;
             
-            // Méthode CTCS
+            // CTCS method
             psi_real_next.submat(1, 1, nx_2, ny_2) =
                 psi_real.submat(1, 1, nx_2, ny_2)
                 - dt * (
@@ -292,7 +292,7 @@ void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
                     ) / 2.0
                 );
                 
-            // Calculer la différence maximale pour vérifier la convergence
+            // Compute maximum difference to check for convergence
             diff_real = abs(psi_real_next - psi_real_prev);
             diff_imag = abs(psi_imag_next - psi_imag_prev);
             max_diff = std::max(diff_real.max(), diff_imag.max());
@@ -303,15 +303,16 @@ void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
             }
         }
         
-        // Une fois la convergence atteinte, mettre à jour les matrices principales
+        // Once convergence is reached, update the main matrices
         psi_real = psi_real_next;
         psi_imag = psi_imag_next;
         
-        // Mettre à jour les informations temporelles
+        // Update time information
         info.stepcounter++;
         info.t += dt;
     }
 }
+
 
 double Solver::Calc_norm(arma::mat &psi_real, arma::mat &psi_imag)
 {
