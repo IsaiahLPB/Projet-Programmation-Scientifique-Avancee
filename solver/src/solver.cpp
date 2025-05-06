@@ -87,7 +87,7 @@ Solver::Solver(mat V, const char *path)
 
 void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-    for (int i = 0; i < 10000; ++i)
+    for (int i = 0; i < 1000; ++i)
     {
         // Mise à jour intérieure selon FTCS
         psi_real_next.submat(1, 1, nx_2, ny_2) =
@@ -130,7 +130,7 @@ void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 
 void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-    for (int i = 0; i < 500; ++i)
+    for (int i = 0; i < 50; ++i)
     {
         // Variables temporaires pour stocker les anciennes valeurs au début du pas de temps
         mat psi_real_old = psi_real;
@@ -198,7 +198,7 @@ void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 
 void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info)
 {
-    for (int i = 0; i < 50; ++i)
+    for (int i = 0; i < 5; ++i)
     {
         // Mise à jour intérieure selon CTCS
         psi_real_next.submat(1, 1, nx_2, ny_2) =
