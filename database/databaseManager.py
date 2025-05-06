@@ -38,8 +38,6 @@ def AlreadyExistHash(hashCode):
                 return True
     return False
 
-#DeleteCollection takes a string that is the name of a collection representing an experience.
-#
 def DeleteCollection(collectionName):
     """
 	@brief if the collection exists, it delete it from the database.
@@ -227,3 +225,15 @@ def test():
 
     print(AlreadyExistHash('non'))
     print(AlreadyExistHash('oui'))
+
+def test_pres():
+    DeleteCollection('Présentation')
+    CreateExperience('Présentation', 'presentation.json', 'nosj.noitatneserp', np.eye(3))
+    InsertMatrix('Présentation', 0, np.eye(3), np.eye(3))
+    InsertMatrix('Présentation', 1, 2 * np.eye(3), 2 * np.eye(3))
+    InsertMatrix('Présentation', 2, 3 * np.eye(3), 3 * np.eye(3))
+    print(db.list_collection_names())
+    print(GetJsonFile('Présentation'))
+    print(GetPotential('Présentation'))
+    print(GetStates('Présentation'))
+test_pres()

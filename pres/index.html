@@ -26,20 +26,24 @@ I. [Introduction au projet](index.html#)
 
 1. Présentation du problème
 
-II. [Field generator](index.html#)
+II. [Base de donnée](index.html#)
+
+1. Structure de la base de donnée
+2. Utilisation de la base de donnée
+3. Exemple d'expérience
+
+III. [Field generator](index.html#)
 
 1. Fichier d'entrée JSON
 2. Différents potentiels implémentés
-3. Structure de la base de donnée
-4. Utilisation de la base de donnée
 
-III. [Solveur Implémentation](index.html#)
+IV. [Solveur Implémentation](index.html#)
     
 1. Matrices complexes
 2. Implémentation des méthodes de résolution
 3. Bindings python
 
-IV. [Post Processor](index.html#8)
+V. [Post Processor](index.html#8)
 
 1. Idée d'implémentation
 
@@ -55,7 +59,219 @@ Le projet doit implémenter les programmes FTCS, BTCS et CTCS.
 
 ---
 class: middle
-# II - Field generator - Fichier d'entrée JSON
+# II - Base de donnée - Structure de la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Nous avons une base de donnée "results" qui stoque nos expérences.
+
+Chaque collection correspond à une expérience dans la base de donnée.
+
+<iframe src="./images/database_finale.png" width="100%" height="470px"></iframe>
+
+---
+class: middle
+# II - Base de donnée - Interaction avec la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```python3
+def AlreadyExist(collectionName):
+    for elt in db.list_collection_names():
+        if elt == collectionName:
+            return True
+    return False
+
+
+def AlreadyExistHash(hashCode):
+    for elt in db.list_collection_names():
+        exp = db[elt]
+        for data in exp.find({"Init": True}):
+            if data["Json_Hash"] == hashCode:
+                return True
+    return False
+
+
+def DeleteCollection(collectionName):
+    try:
+        if AlreadyExist(collectionName):
+            db.drop_collection(collectionName)
+        else:
+            print(collectionName + " doesn't exist, cannot delete a non existing collection")
+    
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+```
+
+---
+class: middle
+# II - Base de donnée - Insertion dans la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```python3
+def CreateExperience(experienceName, jsonFile, jsonHash, potential):
+    try:
+        experience = db[experienceName]
+
+        potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
+
+        data = { "Init": True, "Json_File": jsonFile, "Json_Hash": jsonHash, "Potential": potentialDB }
+        experience.insert_one(data)
+
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+
+
+def InsertMatrix(experienceName, time, psiRe, psiIm):
+    try:
+        if AlreadyExist(experienceName):
+            experience = db[experienceName]
+
+            psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
+            psiImDB = bson.binary.Binary(pickle.dumps(psiIm, protocol = 2))
+
+            data = { "Init": False, "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB }
+            experience.insert_one(data)
+        else:
+            print(experienceName + " doesn't exist, create it before inserting data")
+
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+```
+
+---
+class: middle
+# II - Base de donnée - Récupération dans la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```python3
+def GetPotential(experienceName):
+    try:
+        if AlreadyExist(experienceName):
+            experience = db[experienceName]
+
+            for data in experience.find({"Init": True}):
+                matdata = data["Potential"]
+                mat = pickle.loads(matdata)
+
+            return mat
+        else:
+            print(experienceName + " doesn't exist, cannot get the potential of a non existing experience")
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+
+
+def GetJsonFile(experienceName):
+    try:
+        if AlreadyExist(experienceName):
+            experience = db[experienceName]
+
+            for data in experience.find({"Init": True}):
+                filedata = data["Json_File"]
+
+            return filedata
+        else:
+            print(experienceName + " doesn't exist, cannot get the Json file of a non existing experience")
+
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+
+```
+
+---
+class: middle
+# II - Base de donnée - Récupération dans la base de donnée
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```python3
+def GetLastState(experienceName):
+    try:
+        if AlreadyExist(experienceName):
+            experience = db[experienceName]
+
+            lastTime = -1
+            for data in experience.find({"Init": False}):
+                if data["Time"] > lastTime:
+                    lastTime = data["Time"]
+                    psiReData = data["Psi_Real"]
+                    psiRe = pickle.loads(psiReData)
+                    psiImData = data["Psi_Imaginary"]
+                    psiIm = pickle.loads(psiImData)
+
+            return (lastTime, psiRe, psiIm)
+        else:
+            print(experienceName + " doesn't exist, cannot get the last state of a non existing experience")
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+
+
+def GetStates(experienceName):
+    try:
+        if AlreadyExist(experienceName):
+            experience = db[experienceName]
+
+            stateList = []
+            for data in experience.find({"Init": False}):
+                time = data["Time"]
+                psiReData = data["Psi_Real"]
+                psiRe = pickle.loads(psiReData)
+                psiImData = data["Psi_Imaginary"]
+                psiIm = pickle.loads(psiImData)
+                stateList.append((time, psiRe, psiIm))
+
+            return stateList
+        else:
+            print(experienceName + " doesn't exist, cannot get the list of states of a non existing experience")
+    except pymongo.errors.OperationFailure as e:
+        print("ERROR: %s" % (e))
+```
+
+---
+class: middle
+# II - Base de donnée - Exemple d'expérience
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+```python3
+def test_pres():
+    DeleteCollection('Présentation')
+    CreateExperience('Présentation', 'presentation.json', 'nosj.noitatneserp', np.eye(3))
+    InsertMatrix('Présentation', 0, np.eye(3), np.eye(3))
+    InsertMatrix('Présentation', 1, 2 * np.eye(3), 2 * np.eye(3))
+    InsertMatrix('Présentation', 2, 3 * np.eye(3), 3 * np.eye(3))
+    print(db.list_collection_names())
+    print(GetJsonFile('Présentation'))
+    print(GetPotential('Présentation'))
+    print(GetStates('Présentation'))
+```
+
+```shell
+['Présentation']
+presentation.json
+[[1. 0. 0.]
+ [0. 1. 0.]
+ [0. 0. 1.]]
+[(0, array([[1., 0., 0.],
+       [0., 1., 0.],
+       [0., 0., 1.]]), 
+    array([[1., 0., 0.],
+       [0., 1., 0.],
+       [0., 0., 1.]])),
+ (1, array([[2., 0., 0.],
+       [0., 2., 0.],
+       [0., 0., 2.]]),
+    array([[2., 0., 0.],
+       [0., 2., 0.],
+       [0., 0., 2.]])),
+ (2, array([[3., 0., 0.],
+       [0., 3., 0.],
+       [0., 0., 3.]]),
+    array([[3., 0., 0.],
+       [0., 3., 0.],
+       [0., 0., 3.]]))]
+
+```
+
+---
+class: middle
+# III - Field generator - Fichier d'entrée JSON
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il souhaite réaliser.
@@ -92,7 +308,7 @@ L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il 
 
 ---
 class: middle
-# II - Field generator - Fonctionnement du main
+# III - Field generator - Fonctionnement du main
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 Fonctionnement global du field generator.
@@ -115,7 +331,7 @@ def main():
 
 ---
 class: middle
-# II - Field generator - Différents potentiels implémentés
+# III - Field generator - Différents potentiels implémentés
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans main.py
@@ -151,7 +367,7 @@ def calcV(v):
 
 ---
 class: middle
-# II - Field generator - Différents Psi_0 calculés
+# III - Field generator - Différents Psi_0 calculés
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans main.py
@@ -180,7 +396,7 @@ def calcGaussPsi0Im():
 
 ---
 class: middle
-# II - Field generator - Mécanisme de reprise de calcul
+# III - Field generator - Mécanisme de reprise de calcul
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Travail encore à réaliser
@@ -194,54 +410,7 @@ Pour savoir si l'expérience a déjà été réalisée, on peut utilisera le has
 
 ---
 class: middle
-# II - Field generator - Structure de la base de donnée
-.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-
-Une expérience correspond à un document dans la base de donnée
-<iframe src="./images/database.png" width="100%" height="470px"></iframe>
-
----
-class: middle
-# II - Field generator - interaction avec la base de donnée
-.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-
-```python3
-def PutMatrixInDB(experienceName, experienceHash, time, psiRe, psiIm, potential):
-    try:
-        db = client.results
-        matrix = db.matrix
-
-        psiReDB = bson.binary.Binary(pickle.dumps(psiRe, protocol = 2))
-        psiImDB = bson.binary.Binary(pickle.dumps(psiIm, protocol = 2))
-        potentialDB = bson.binary.Binary(pickle.dumps(potential, protocol = 2))
-
-        data = { "Experience": experienceName, "Hash": experienceHash, "Time": time, "Psi_Real": psiReDB, "Psi_Imaginary": psiImDB, "Potential": potentialDB }
-        matrix.insert_one(data).inserted_id
-
-    except pymongo.errors.OperationFailure as e:
-        print("ERROR: %s" % (e))
-```
-
----
-class: middle
-# II - Field generator - interaction avec la base de donnée
-.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-
-```
-{
-    _id: ObjectId('67ec131da547f2eb8bffd316'),
-    Experience: 'example with matrixes',
-    Hash: 2,
-    Time: 0,
-    Psi_Real: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEsAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADDsD9xEWgFhnESUnETdHEUYi4=', 0),
-    Psi_Imaginary: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBxEWgFhnESUnETdHEUYi4=', 0),
-    Potential: Binary.createFromBase64('gAJjbnVtcHkuX2NvcmUubXVsdGlhcnJheQpfcmVjb25zdHJ1Y3QKcQBjbnVtcHkKbmRhcnJheQpxAUsAhXECY19jb2RlY3MKZW5jb2RlCnEDWAEAAABicQRYBgAAAGxhdGluMXEFhnEGUnEHh3EIUnEJKEsBSwNLA4ZxCmNudW1weQpkdHlwZQpxC1gCAAAAZjhxDImIh3ENUnEOKEsDWAEAAAA8cQ9OTk5K/////0r/////SwB0cRBiiWgDWEgAAAAAAAAAAAAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEBxEWgFhnESUnETdHEUYi4=', 0)
-}
-```
-
----
-class: middle
-# III - Solveur - Matrices complexes
+# IV - Solveur - Matrices complexes
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans complex_mat.h
@@ -273,7 +442,7 @@ ComplexMat::ComplexMat(mat re_val, mat im_val)
 
 ---
 class: middle
-# III - Solveur - Implémentation des méthodes de résolution
+# IV - Solveur - Implémentation des méthodes de résolution
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans solver.cpp
@@ -307,7 +476,7 @@ complex_mat Solver::FTCS_derivation(complex_mat psi_t)
 
 ---
 class: middle
-# III - Solveur - Résulats FCTS
+# IV - Solveur - Résulats FCTS
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 Gaussienne et potentiel harmonique
 <video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
@@ -316,7 +485,7 @@ Gaussienne et potentiel harmonique
 
 ---
 class: middle
-# III - Solveur - Résulats BCTS
+# IV - Solveur - Résulats BCTS
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 Gaussienne et potentiel harmonique
 <video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
@@ -325,7 +494,7 @@ Gaussienne et potentiel harmonique
 
 ---
 class: middle
-# III - Solveur - Bindings python
+# IV - Solveur - Bindings python
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 #### Dans solver.i
@@ -355,7 +524,7 @@ setup(name='package_solver',
 
 ---
 class: middle
-# IV - Post processor -
+# V - Post processor -
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
 ## Cette partie n'a pas encore été traitée.
