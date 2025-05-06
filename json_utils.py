@@ -28,6 +28,8 @@ def get_json(path):
     psi_nb = psi["nb"]
     psi_2DH0_nx = psi["2DH0_nx"]
     psi_2DH0_ny = psi["2DH0_ny"]
+    psi_x0 = psi["x0"]
+    psi_y0 = psi["y0"]
     
     V = param["V"]
     image_V = param["image_V"]
@@ -48,4 +50,4 @@ def get_json(path):
                 exit(1)
     
     return (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, k_x, k_y, 
-            psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, V, image_V, method, t_max, dt)
+            psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, psi_x0, psi_y0, V, image_V, method, t_max, dt)
