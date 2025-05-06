@@ -1,6 +1,6 @@
-.PHONY: display
+.PHONY: vtr
 
-all: display
+all: vtr
 
 vtr:
 	../psa_venv/bin/python3 main.py ../consts.JSON
