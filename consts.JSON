@@ -15,10 +15,10 @@
     },
     "user parameters": {
         "psi": {
-            "type": 0,
+            "type": "2D-HO",
             "nb": 1,
-            "2DH0_nx": 2,
-            "2DH0_ny": 0,
+            "2DH0_nx": 1,
+            "2DH0_ny": 1,
             "x0": 0,
             "y0": 0
         },
