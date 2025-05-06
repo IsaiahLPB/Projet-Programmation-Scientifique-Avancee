@@ -281,6 +281,8 @@ def main():
 	if db.AlreadyExist(exp_name):
 		print("An experiment with the same name already exists.")
 		if db.AlreadyExistHash(hash):
+			print("An experiment with the same name and the same hash already exists.")
+			print("Will use the results of this experiment to continue.")
 			val = False
 		while val:
 			u_input = input("Do you want to overwrite it ? (y/N) : ")
