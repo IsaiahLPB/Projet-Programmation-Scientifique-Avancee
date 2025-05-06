@@ -99,13 +99,13 @@ Solver::Solver(mat V, const char *path)
     coef_x = h_bar / (2 * m * dx * dx);
     coef_y = h_bar / (2 * m * dy * dy);
 
-    nx_1 = nx-1;
-    ny_1 = ny-1;
-    nx_2 = nx-2;
-    ny_2 = ny-2;
-    nx_3 = nx-3;
-    ny_3 = ny-3;
-    dt_2 = dt/2;
+    nx_1 = nx - 1;
+    ny_1 = ny - 1;
+    nx_2 = nx - 2;
+    ny_2 = ny - 2;
+    nx_3 = nx - 3;
+    ny_3 = ny - 3;
+    dt_2 = dt / 2;
 
     psi_real_next.zeros(nx, ny);
     psi_imag_next.zeros(nx, ny);
@@ -162,49 +162,30 @@ void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
             // Save previous solutions to compute the difference
             psi_real_prev = psi_real_next;
             psi_imag_prev = psi_imag_next;
-            
+
             // BTCS method
-            psi_real_next.submat(1, 1, nx_2, ny_2) = 
-                psi_real.submat(1, 1, nx_2, ny_2)
-                - dt * (
-                    A % psi_imag_next.submat(1, 1, nx_2, ny_2)
-                    + coef_x * (
-                        psi_imag_next.submat(2, 1, nx_1, ny_2) +
-                        psi_imag_next.submat(0, 1, nx_3, ny_2)
-                    )
-                    + coef_y * (
-                        psi_imag_next.submat(1, 2, nx_2, ny_1) +
-                        psi_imag_next.submat(1, 0, nx_2, ny_3)
-                    )
-                );
-                
-            psi_imag_next.submat(1, 1, nx_2, ny_2) = 
-                psi_imag.submat(1, 1, nx_2, ny_2)
-                + dt * (
-                    A % psi_real_next.submat(1, 1, nx_2, ny_2)
-                    + coef_x * (
-                        psi_real_next.submat(2, 1, nx_1, ny_2) +
-                        psi_real_next.submat(0, 1, nx_3, ny_2)
-                    )
-                    + coef_y * (
-                        psi_real_next.submat(1, 2, nx_2, ny_1) +
-                        psi_real_next.submat(1, 0, nx_2, ny_3)
-                    )
-                );
-            
+            psi_real_next.submat(1, 1, nx_2, ny_2) =
+                psi_real.submat(1, 1, nx_2, ny_2) - dt * (A % psi_imag_next.submat(1, 1, nx_2, ny_2) + coef_x * (psi_imag_next.submat(2, 1, nx_1, ny_2) + psi_imag_next.submat(0, 1, nx_3, ny_2)) + coef_y * (psi_imag_next.submat(1, 2, nx_2, ny_1) + psi_imag_next.submat(1, 0, nx_2, ny_3)));
+
+            psi_imag_next.submat(1, 1, nx_2, ny_2) =
+                psi_imag.submat(1, 1, nx_2, ny_2) + dt * (A % psi_real_next.submat(1, 1, nx_2, ny_2) + coef_x * (psi_real_next.submat(2, 1, nx_1, ny_2) + psi_real_next.submat(0, 1, nx_3, ny_2)) + coef_y * (psi_real_next.submat(1, 2, nx_2, ny_1) + psi_real_next.submat(1, 0, nx_2, ny_3)));
+
             // Compute the maximum difference to check for convergence
             diff_real = abs(psi_real_next - psi_real_prev);
             diff_imag = abs(psi_imag_next - psi_imag_prev);
             max_diff = std::max(diff_real.max(), diff_imag.max());
 
             iter_count++;
-            if(iter_count==max_iter){cout << "MAX_ITER reached without convergence" << endl;}
+            if (iter_count == max_iter)
+            {
+                cout << "MAX_ITER reached without convergence" << endl;
+            }
         }
-        
+
         // Once convergence is reached, update the main matrices
         psi_real = psi_real_next;
         psi_imag = psi_imag_next;
-        
+
         // Update time information
         info.stepcounter++;
         info.t += dt;
@@ -225,95 +206,58 @@ void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
         // First approximation using Euler's method
         psi_real_next = psi_real;
         psi_imag_next = psi_imag;
-        
+
         // Euler method for the initial approximation
-        psi_real_next.submat(1, 1, nx_2, ny_2) = psi_real.submat(1, 1, nx_2, ny_2)
-            - dt * (
-                A % psi_imag.submat(1, 1, nx_2, ny_2)
-                + coef_x * (psi_imag.submat(2, 1, nx_1, ny_2) + psi_imag.submat(0, 1, nx_3, ny_2))
-                + coef_y * (psi_imag.submat(1, 2, nx_2, ny_1) + psi_imag.submat(1, 0, nx_2, ny_3))
-            );
-            
-        psi_imag_next.submat(1, 1, nx_2, ny_2) = psi_imag.submat(1, 1, nx_2, ny_2)
-            + dt * (
-                A % psi_real.submat(1, 1, nx_2, ny_2)
-                + coef_x * (psi_real.submat(2, 1, nx_1, ny_2) + psi_real.submat(0, 1, nx_3, ny_2))
-                + coef_y * (psi_real.submat(1, 2, nx_2, ny_1) + psi_real.submat(1, 0, nx_2, ny_3))
-            );
-        
+        psi_real_next.submat(1, 1, nx_2, ny_2) = psi_real.submat(1, 1, nx_2, ny_2) - dt * (A % psi_imag.submat(1, 1, nx_2, ny_2) + coef_x * (psi_imag.submat(2, 1, nx_1, ny_2) + psi_imag.submat(0, 1, nx_3, ny_2)) + coef_y * (psi_imag.submat(1, 2, nx_2, ny_1) + psi_imag.submat(1, 0, nx_2, ny_3)));
+
+        psi_imag_next.submat(1, 1, nx_2, ny_2) = psi_imag.submat(1, 1, nx_2, ny_2) + dt * (A % psi_real.submat(1, 1, nx_2, ny_2) + coef_x * (psi_real.submat(2, 1, nx_1, ny_2) + psi_real.submat(0, 1, nx_3, ny_2)) + coef_y * (psi_real.submat(1, 2, nx_2, ny_1) + psi_real.submat(1, 0, nx_2, ny_3)));
+
         // Refine using iterations
         double max_diff = 1.0; // Initial value greater than epsilon
         int iter_count = 0;
-        
+
         while (max_diff > epsilon && iter_count < max_iter)
         {
             // Save previous solutions to compute the difference
             psi_real_prev = psi_real_next;
             psi_imag_prev = psi_imag_next;
-            
+
             // CTCS method
             psi_real_next.submat(1, 1, nx_2, ny_2) =
-                psi_real.submat(1, 1, nx_2, ny_2)
-                - dt * (
-                    A % (psi_imag.submat(1, 1, nx_2, ny_2) +
-                        psi_imag_next.submat(1, 1, nx_2, ny_2)
-                    ) / 2.0
-                    + coef_x * (
-                        psi_imag.submat(2, 1, nx_1, ny_2) +
-                        psi_imag.submat(0, 1, nx_3, ny_2) +
-                        psi_imag_next.submat(2, 1, nx_1, ny_2) +
-                        psi_imag_next.submat(0, 1, nx_3, ny_2)
-                    ) / 2.0
-                    + coef_y * (
-                        psi_imag.submat(1, 2, nx_2, ny_1) +
-                        psi_imag.submat(1, 0, nx_2, ny_3) +
-                        psi_imag_next.submat(1, 2, nx_2, ny_1) +
-                        psi_imag_next.submat(1, 0, nx_2, ny_3)
-                    ) / 2.0
-                );
-                
+                psi_real.submat(1, 1, nx_2, ny_2) - dt * (A % (psi_imag.submat(1, 1, nx_2, ny_2) + psi_imag_next.submat(1, 1, nx_2, ny_2)) / 2.0 + coef_x * (psi_imag.submat(2, 1, nx_1, ny_2) + psi_imag.submat(0, 1, nx_3, ny_2) + psi_imag_next.submat(2, 1, nx_1, ny_2) + psi_imag_next.submat(0, 1, nx_3, ny_2)) / 2.0 + coef_y * (psi_imag.submat(1, 2, nx_2, ny_1) + psi_imag.submat(1, 0, nx_2, ny_3) + psi_imag_next.submat(1, 2, nx_2, ny_1) + psi_imag_next.submat(1, 0, nx_2, ny_3)) / 2.0);
+
             psi_imag_next.submat(1, 1, nx_2, ny_2) =
-                psi_imag.submat(1, 1, nx_2, ny_2)
-                + dt * (
-                    A % (psi_real.submat(1, 1, nx_2, ny_2) +
-                        psi_real_next.submat(1, 1, nx_2, ny_2)
-                    ) / 2.0
-                    + coef_x * (
-                        psi_real.submat(2, 1, nx_1, ny_2) +
-                        psi_real.submat(0, 1, nx_3, ny_2) +
-                        psi_real_next.submat(2, 1, nx_1, ny_2) +
-                        psi_real_next.submat(0, 1, nx_3, ny_2)
-                    ) / 2.0
-                    + coef_y * (
-                        psi_real.submat(1, 2, nx_2, ny_1) +
-                        psi_real.submat(1, 0, nx_2, ny_3) +
-                        psi_real_next.submat(1, 2, nx_2, ny_1) +
-                        psi_real_next.submat(1, 0, nx_2, ny_3)
-                    ) / 2.0
-                );
-                
+                psi_imag.submat(1, 1, nx_2, ny_2) + dt * (A % (psi_real.submat(1, 1, nx_2, ny_2) + psi_real_next.submat(1, 1, nx_2, ny_2)) / 2.0 + coef_x * (psi_real.submat(2, 1, nx_1, ny_2) + psi_real.submat(0, 1, nx_3, ny_2) + psi_real_next.submat(2, 1, nx_1, ny_2) + psi_real_next.submat(0, 1, nx_3, ny_2)) / 2.0 + coef_y * (psi_real.submat(1, 2, nx_2, ny_1) + psi_real.submat(1, 0, nx_2, ny_3) + psi_real_next.submat(1, 2, nx_2, ny_1) + psi_real_next.submat(1, 0, nx_2, ny_3)) / 2.0);
+
             // Compute maximum difference to check for convergence
             diff_real = abs(psi_real_next - psi_real_prev);
             diff_imag = abs(psi_imag_next - psi_imag_prev);
             max_diff = std::max(diff_real.max(), diff_imag.max());
             iter_count++;
-            
-            if(iter_count == max_iter) {
+
+            if (iter_count == max_iter)
+            {
                 cout << "MAX_ITER reached without convergence" << endl;
             }
         }
-        
+
         // Once convergence is reached, update the main matrices
         psi_real = psi_real_next;
         psi_imag = psi_imag_next;
-        
+
         // Update time information
         info.stepcounter++;
         info.t += dt;
     }
 }
 
-
+/**
+ * @brief This function computes the norm of the wave function
+ *
+ * @param psi_real Real part of the matrix
+ * @param psi_imag Imaginary part of the matrix
+ * @return double The norm of the wave function
+ */
 double Solver::Calc_norm(arma::mat &psi_real, arma::mat &psi_imag)
 {
     double norm = 0.0;
