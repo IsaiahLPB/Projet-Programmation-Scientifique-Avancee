@@ -80,6 +80,7 @@ def main():
         
         # Create VTR files for each state
         create_vtr_files(exp_name, state_list, x_min, x_max, y_min, y_max, nx, ny)
+        print("VTR files created in ./post_processor/vtr_files")
         
         return 0
     

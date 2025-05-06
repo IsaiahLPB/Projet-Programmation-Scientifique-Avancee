@@ -3,7 +3,7 @@
 all: vtr
 
 vtr:
-	../psa_venv/bin/python3 main.py ../consts.JSON
+	@../psa_venv/bin/python3 main.py ../consts.JSON
 
 clean:
 	rm -f vtr_files/*
