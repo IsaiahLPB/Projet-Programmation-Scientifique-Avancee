@@ -14,17 +14,18 @@ public:
   void FTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   void BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   void CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
+  double Calc_norm(arma::mat &psi_real, arma::mat &psi_imag);
   arma::mat V_inner;
 
   const double epsilon = 10e-6;
-  const int max_iter = 100;  // Maximum number of iteration (to prevent infite loop)
+  const int max_iter = 100; // Maximum number of iteration (to prevent infite loop)
 
   arma::mat diff_real;
   arma::mat diff_imag;
-  
+
   arma::mat psi_real_prev;
   arma::mat psi_imag_prev;
-  
+
   double h_bar;
   double m;
   double x_min;

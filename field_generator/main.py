@@ -80,6 +80,8 @@ def calcVFromImage():
     	# Convertir en niveaux de gris
 		gray = np.dot(img_rgb, [0.2989, 0.5870, 0.1140])
 
+		gray = gray / 255 * 100000000 # Valeur arbitraire
+
 	return gray
 
 def plotV():
@@ -203,7 +205,7 @@ def calcV():
 			return calcHarmV()
 		case _:
 			print("Not a valid value for v")
-			exit
+			exit(2)
 
 # Calculate the wave function according to the psi value :
 # if psi = 0, use gaussian wave packet with initial speed
