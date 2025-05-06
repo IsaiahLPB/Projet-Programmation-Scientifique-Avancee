@@ -14,10 +14,11 @@ public:
   void FTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   void BTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
   void CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info);
+  double Calc_norm(arma::mat &psi_real, arma::mat &psi_imag);
   arma::mat V_inner;
 
   const double epsilon = 10e-6;
-  
+
   const int max_iter = 100; // Nombre maximum d'itérations pour convergence
   int iter;
   double error;

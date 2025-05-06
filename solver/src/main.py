@@ -44,6 +44,18 @@ match method:
 			# Call C++ function
 			solver.FTCS_derivation(psi_real, psi_imag, info)
 
+			norm = solver.getNorm(psi_real, psi_imag)
+			print("Norm:", norm)
+			if norm > 3.0:
+				print("Too high norm, stopping simulation")
+				break
+			elif norm < 0.1:
+				print("Too low norm, stopping simulation")
+				break
+			elif norm < 0:
+				print("Negative norm, stopping simulation")
+				break
+			
 			# Write the files in the DB
 			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
 			#print("File", info.stepcounter, "written in the database")

@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 
 # Adding root of the project to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import database.databaseManager as db
 import json_utils as js_uti
 
@@ -51,7 +51,7 @@ def calcHarmV():
 	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
 	global Vmat
-	Vmat = (X**2 + Y**2) / 9
+	Vmat = (X**2 + Y**2) / 2
 	return Vmat
 
 def calcVFromImage():
@@ -203,7 +203,7 @@ def calcV():
 			return calcHarmV()
 		case _:
 			print("Not a valid value for v")
-			exit
+			exit(2)
 
 # Calculate the wave function according to the psi value :
 # if psi = 0, use gaussian wave packet with initial speed
