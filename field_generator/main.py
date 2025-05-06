@@ -8,7 +8,7 @@ import matplotlib.image as mpimg
 import sys
 import os
 
-# Ajoute la racine du projet au path Python
+# Add the root of the project to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import database.databaseManager as db
 import json_utils as js_uti
@@ -28,18 +28,39 @@ psi0Im = np.zeros((n_x, n_y))
 # Calculate the potential centered in (0, 0) at each point in the grid following this equation:
 # V = (x² + y²) / 9 without i and j loop
 def calcHarmV():
-	x = np.linspace(-10, 10, n_x)
-	y = np.linspace(-10, 10, n_y)
+	"""
+	@brief Calculate the potential for a harmonic oscillator
+	@details The potential is calculated using the equation V = (x² + y²) / 9 as given in the lecture notes.
+
+	@param None
+	@return Vmat : The potential matrix
+	"""
+	x = np.linspace(x0-10, x0+10, n_x)
+	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
 	global Vmat
 	Vmat = (X**2 + Y**2) / 9
 	return Vmat
 
 def calcVFromImage():
+	"""
+	@brief Calculate the potential from an image given in the consts.JSON file
+	@details The potential is calculated using the image given in the consts.JSON file if the user chose the "Image method". The image is read and converted to a matrix.
+
+	@param None
+	@return img : The potential matrix
+	"""
 	img = mpimg.imread(image_V)
 	return img
 
 def plotV():
+	"""
+	@brief Plot the potential matrix
+	@details The potential matrix is plotted using matplotlib. The color map is set to 'hot' and the axis are turned off. Should not be used in the final project.
+
+	@param None, the matrix used is a global variable
+	@return None
+	"""
 	global Vmat
 	plt.imshow(Vmat, cmap='hot', interpolation='nearest')
 	plt.colorbar()
@@ -47,6 +68,14 @@ def plotV():
 	plt.show()
 
 def calcGaussPsi0():
+	"""
+	@brief Calculate the wave function for a gaussian wave packet
+	@details The wave function is calculated using the equation psi(x, y) = A * exp(- (x² + y²) / (2 * w²)) * cos(k_x * x + k_y * y) + i * A * exp(- (x² + y²) / (2 * w²)) * sin(k_x * x + k_y * y)
+
+	@param None
+	@return psi0Re : The real part of the wave function
+	@return psi0Im : The imaginary part of the wave function
+	"""
 	A = np.sqrt(2 / np.pi * (w**2))
 	x = np.linspace(x0-10, x0+10, n_x)
 	y = np.linspace(y0-10, y0+10, n_y)
@@ -56,6 +85,13 @@ def calcGaussPsi0():
 	return psi0Re, psi0Im
 
 def calc2DHOPsi0():
+	"""
+	@brief Calculate the wave function for a 2D harmonic oscillator
+	@details The wave function is calculated using the equation psi(x, y) = A * exp(- (x² + y²) / (2 * w²)) * H_n(x) * H_m(y) where H_n and H_m are the Hermite polynomials of order n and m.
+
+	@param None
+	@return psi0 : The wave function
+	"""
 	coeff_x = [0 for i in range(psi_2DH0_nx - 1)]
 	coeff_x.append(1)
 	H3_x = Hermite([coeff_x])
@@ -72,6 +108,13 @@ def calc2DHOPsi0():
 	return psi_x * psi_y
 
 def calcMult2DHOPsi0():
+	"""
+	@brief Calculate the wave function for a combination of 2D harmonic oscillator
+	@details The wave function is calculated using the equation psi(x, y) = A * exp(- (x² + y²) / (2 * w²)) * H_n(x) * H_m(y) where H_n and H_m are the Hermite polynomials of order n and m.
+
+	@param None
+	@return psi0 : The combination of multiple waves functions
+	"""
 	if psi_nb == 1:
 		return calc2DHOPsi0()
 	psi_array = []
@@ -92,26 +135,36 @@ def calcMult2DHOPsi0():
 	return reduce(np.multiply, psi_array)
 
 def plotPsi0():
-	psi0Real, psi0Comp = calcPsi()
+	"""
+	@brief Plot the wave function matrix
+	@details The wave function matrix is plotted using matplotlib. The color map is set to 'hot' and the axis are turned off. Should not be used in the final project.
+
+	@param None, the matrix used is a global variable
+	@return None
+	"""
+	global psi0Re, psi0Im
 	plt.subplot(1, 2, 1)
-	plt.imshow(psi0Real, cmap='hot', interpolation='nearest')
+	plt.imshow(psi0Re, cmap='hot', interpolation='nearest')
 	plt.colorbar()
 	plt.title('Partie réelle de psi0')
 	plt.axis('on')
 
 	plt.subplot(1, 2, 2)
-	plt.imshow(psi0Comp, cmap='hot', interpolation='nearest')
+	plt.imshow(psi0Im, cmap='hot', interpolation='nearest')
 	plt.colorbar()
 	plt.title('Partie imaginaire de psi0')
 	plt.axis('on')
 
 	plt.show()
 
-# Calculate the potential according to the v value :
-# if v = 0, use the image given in the consts.JSON file
-# if v = 1, the potential is 0 everywhere
-# if v = 2, the potential for a harmonic oscillator
 def calcV():
+	"""
+	@brief Calculate the potential according to the v value
+	@details If v = "Image", use the image given in the consts.JSON file. If v = "Null", the potential is 0 everywhere. If v = "Harmonic", the potential for a harmonic oscillator.
+
+	@param None
+	@return Vmat : The potential matrix calculated by the appropriate function
+	"""
 	match V_id:
 		case "Image":
 			return calcVFromImage()
@@ -127,6 +180,14 @@ def calcV():
 # if psi = 1, use a solution of the 2D-HO
 # if psi = 2, use a combination of solution of the 2D-HO
 def calcPsi():
+	"""
+	@brief Calculate the wave function according to the psi value
+	@details If psi = 0, use gaussian wave packet with initial speed. If psi = 1, use a solution of the 2D-HO. If psi = 2, use a combination of solution of the 2D-HO.
+
+	@param None
+	@return psi0Re : The real part of the wave function
+	@return psi0Im : The imaginary part of the wave function
+	"""
 	match psi_type:
 		case 0:
 			return calcGaussPsi0()
@@ -136,6 +197,13 @@ def calcPsi():
 			return calcMult2DHOPsi0(), np.zeros((n_x, n_y))
 		
 def dataCleaner(data):
+	"""
+	@brief Clean the data from the JSON file
+	@details The data is cleaned by removing the name and t_max from the data. The name is not needed in the database and t_max is not needed for the hash.
+
+	@param data : The data from the JSON file
+	@return modified_data : the cleaned data
+	"""
 	modified_data = dict(data)
 	modified_data.pop("name", None)
 	
@@ -146,6 +214,13 @@ def dataCleaner(data):
 	return modified_data
 		
 def calcJSONHash():
+	"""
+	@brief Calculate the hash of the JSON file
+	@details The hash is calculated using the SHA256 algorithm. The data is cleaned before the hash is calculated.
+
+	@param None
+	@return hash : The hash of the JSON file
+	"""
 	file = "../consts.JSON"
 	with open(file, "r", encoding="utf-8") as f:
 		data = json.load(f)
@@ -160,44 +235,41 @@ def calcJSONHash():
 
 
 def main():
-	global Vmat, psi0Re, psi0Im
+	global Vmat, psi0Re, psi0Im, exp_name, data, hash
 	# Calculate the potential according to the V value :
 	Vmat = calcV()
-	plotV()
+	#plotV()
 	# Calculate the wave function according to the psi value :
 	psi0Re, psi0Im = calcPsi()
-	plotPsi0()
+	#plotPsi0()
 	# Calculate the hash of the experiment
 	hash = calcJSONHash()
-	print("Hash of the experiment: ", hash)
+	#print("Hash of the experiment: ", hash)
+
 	# if the name already exists : inform the user that an expriment with the same name already exists
 	val = True
-	if db.AlreadyExist(exp_name, db.list_collection_names()): # AUCUNE IDÉE DE SI ÇA MARCHE OU PAS
-		print("An experiment with the same name already exists.\nDo you want to overwrite it ? (y/n)\n")
+	if db.AlreadyExist(exp_name):
+		if db.AlreadyExistHash(hash):
+			val = False
+		print("An experiment with the same name already exists.")
 		while val:
-			input = input()
-			if input == "y":
+			u_input = input("Do you want to overwrite it ? (y/N) : ")
+			if u_input == "y":
 				print("Overwriting the experiment...")
 				val = False
-			elif input == "n":
-				print("Please choose a new name for the experiment:\n")
-				exp_name = input()
+			elif u_input == "N":
+				exp_name = input("Please choose a new name for the experiment: ")
 				val = False
-			elif input == "exit":
+			elif u_input == "exit":
 				exit(1)
 			else:
 				print("Invalid input, please choose y or n")
-	
+
 	if not db.AlreadyExistHash(hash):
 		file = "../consts.JSON"
 		with open(file, "r", encoding="utf-8") as f:
 			data = json.load(f)
 		db.CreateExperience(exp_name, data, hash, Vmat)
 		db.InsertMatrix(exp_name, 0, psi0Re, psi0Im)
-	# Send the data in the database if the experiment is not already done
-	# if the hash already exists : check the t_max value :
-	# -> if t_max is the same, inform the user that an expriment with the same hash already exists
-	# -> if the new t_max is lower than the old one, make a new experiment from the beginning
-	# -> if the new t_max is higher than the old one, make a new experiment from the last point
 
 main()
