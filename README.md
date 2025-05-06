@@ -6,12 +6,12 @@ Ce projet utilise MongoDC pour stocker les données en local sur la machine. L'u
 
 ### La base de donnée
 Exécuter les commandes suivantes, une fois la base de donnée téléchargée.
-```systemctl start mongod.service```
-```mongosh mongodb://127.0.0.1```
-```use results```
-```db.createUser({ user: "user0", pwd: "pwd0", roles: ["dbAdmin"]})```
+- ```systemctl start mongod.service```
+- ```mongosh mongodb://127.0.0.1```
+- ```use results```
+- ```db.createUser({ user: "user0", pwd: "pwd0", roles: ["dbAdmin"]})```
 Pour afficher les différentes expériences dans la base de donée
-```db.experienceName.find()```
+- ```db.experienceName.find()```
 
 À la racine du projet utilisez la commande `make init` pour créer un environnement virtuel pour Python. Cela créra l'environnement virtuel et chargera les modules nécessaires au bon déroulement du projet. Cette commande crée ensuite les bindings Python, qui permettent d'appeler des fonctions C++ depuis un programme Python.
 
