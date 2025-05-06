@@ -51,7 +51,7 @@ def calcHarmV():
 	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
 	global Vmat
-	Vmat = (X**2 + Y**2) / 9
+	Vmat = (X**2 + Y**2) / 2
 	return Vmat
 
 def calcVFromImage():
