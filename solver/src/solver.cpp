@@ -148,23 +148,17 @@ void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
  */
 void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-    // Temporary matrixes for iterations
-    mat psi_real_new = psi_real;
-    mat psi_imag_new = psi_imag;
-    mat psi_real_iter, psi_imag_iter;
-
     for (int i = 0; i < 50; ++i)
     {
-        psi_real_iter = psi_real;
-        psi_imag_iter = psi_imag;
+        // Initialize values for the iteration
+        psi_real_next = psi_real;
+        psi_imag_next = psi_imag;
 
-        double max_diff = 1.0; // Initial value above epsilon
+        double max_diff = 1.0; // Initial value greater than epsilon
         int iter_count = 0;
-        const int max_iter = 100; // Maximum number of iteration (to prevent infite loop)
 
         while (max_diff > epsilon && iter_count < max_iter)
         {
-            // Sauvegarde des solutions précédentes pour calculer la différence
             // Save previous solutions to compute the difference
             psi_real_prev = psi_real_next;
             psi_imag_prev = psi_imag_next;
@@ -224,7 +218,7 @@ void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
  * @param psi_imag Imaginary part of the matrix
  * @param info Informations about the current time and the number of iteration since the last matrix was given to the python bloc
  */
-void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info)
+void Solver::CTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
     for (int i = 0; i < 5; ++i)
     {
@@ -322,6 +316,7 @@ void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepI
 double Solver::Calc_norm(arma::mat &psi_real, arma::mat &psi_imag)
 {
     double norm = 0.0;
-    norm = arma::accu((psi_real + psi_imag) % (psi_real - psi_imag)) * dx * dy;
+    arma::cx_mat psi = arma::cx_mat(psi_real, psi_imag);
+    norm = arma::accu(psi % arma::conj(psi) * dx * dy).real();
     return norm;
 }
