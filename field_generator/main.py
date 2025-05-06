@@ -298,7 +298,7 @@ def main():
 			elif u_input == "exit":
 				exit(1)
 			else:
-				print("Invalid input, please choose y or n")
+				print("Invalid input, please choose y or N")
 
 	if not db.AlreadyExistHash(hash):
 		file = "../consts.JSON"
