@@ -33,8 +33,8 @@ def create_vtr_files(exp_name, state_list, x_min, x_max, y_min, y_max, nx, ny, o
     for idx, state in enumerate(state_list):
         t, psi_re, psi_im = state
         
-        # Probability density
-        psi_squared = (psi_re**2 + psi_im**2).reshape((ny, nx, 1))
+        # Probability density, reshaped to fit gridToVTK
+        psi_squared = (psi_re**2 + psi_im**2).reshape((ny, nx, 1)) 
         
         # Name of the file 
         filename = f"{output_dir}/{exp_name}_{idx:04d}"

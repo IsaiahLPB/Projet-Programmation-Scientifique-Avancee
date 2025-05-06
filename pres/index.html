@@ -40,15 +40,25 @@ III. [Field generator](index.html#)
 4. Calcul du potentiel
 5. Calcul de psi
 
-IV. [Solveur Implémentation](index.html#)
+IV. [Solveur](index.html#)
     
-1. Matrices complexes
+1. Préparation aux calculs
 2. Implémentation des méthodes de résolution
 3. Bindings python
 
-V. [Post Processor](index.html#8)
+V. [Post Processor](index.html#)
 
-1. Idée d'implémentation
+1. Création des fichiers VTK
+
+VI. [Résultats](index.html#)
+
+1. Fentes d'Young
+
+VII. [Expérience utilisateur](index.html#)
+
+1. Préparation de l'environnement
+
+2. Utilisation des modules
 
 ---
 class: middle
@@ -306,7 +316,7 @@ L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il 
             "y0": 0
         },
         "V": "Harmonic",
-        "image_V": "/path/to/image.png",
+        "image_V": "image.png",
         "method": "FTCS",
         "dt": "default",
         "t_max": 10
@@ -481,132 +491,413 @@ def calc2DHOPsi0():
 
 ---
 class: middle
-# IV - Solveur - Matrices complexes
+# IV - Solveur - Préparation au calcul
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-#### Dans complex_mat.h
-```cpp
-typedef struct complex_mat
-{
-  mat re;
-  mat im;
-}complex_mat;
+### Dans solver/src/main.py
+```python
+# Read JSON file
+(exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, kx, ky, 
+ psi_type, psi_nb, psi_2DH0_nx, psi_2DH0_ny, x0, y0, V_id, image_V, method, t_max, dt) = js_uti.get_json(json_path)
+ 
+# Retrive data from de DB
+V = db.GetPotential(exp_name)
+info = TimeStepInfo()
+info.stepcounter = 0
+info.t, psi_real, psi_imag = db.GetLastState(exp_name)
+
+# Converts Numpy matrixes so that they have the same pattern in memory as Armadillo matrixes
+psi_real = np.array(psi_real, dtype=np.float64, order="F")
+psi_imag = np.array(psi_imag, dtype=np.float64, order="F")
+V = np.array(V, dtype=np.float64, order="F")
+solver = solver.Solver(V, json_path)
+
 ```
 
-#### Dans complex_mat.cpp
+### Dans solver/src/TimeStepInfo.h
 ```cpp
-complex_mat init_c_mat(uword n, uword m)
-{
-  complex_mat M;
-  M.re.zeros(n, m);
-  M.im.zeros(n, m);
-  return M;
-}
+#ifndef TIMESTEPINFO_H
+#define TIMESTEPINFO_H
+struct TimeStepInfo {
+    double t;
+    int stepcounter;
+};
+#endif
+```
 
-ComplexMat::ComplexMat(mat re_val, mat im_val)
+---
+class: middle
+# IV - Solveur - Constructeur du solveur
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Le but est d'initialiser le maximum d'éléments avant de commencer le calcul.
+
+#### Dans solver/src/solver.cpp
+```cpp
+Solver::Solver(mat V, const char *path)
 {
-  complex_mat M;
-  M.re = re_val;
-  M.im = im_val;
+    Lecture du json
+    ...
+
+    dx = (x_max - x_min) / (nx - 1);
+    dy = (y_max - y_min) / (ny - 1);
+
+    V_inner = V.submat(1, 1, nx - 2, ny - 2);
+
+    A = ((-1 / h_bar) * V_inner - ((h_bar / m) * (1 / dx * dx + 1 / dy * dy)));
+    coef_x = h_bar / (2 * m * dx * dx);
+    coef_y = h_bar / (2 * m * dy * dy);
+
+    nx_1 = nx - 1;
+    ny_1 = ny - 1;
+    nx_2 = nx - 2;
+    ny_2 = ny - 2;
+    nx_3 = nx - 3;
+    ny_3 = ny - 3;
+    dt_2 = dt / 2;
+
+    psi_real_next.zeros(nx, ny);
+    psi_imag_next.zeros(nx, ny);
 }
 ```
 
 ---
 class: middle
-# IV - Solveur - Implémentation des méthodes de résolution
+# IV - Solveur - Méthode FCTS
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-#### Dans solver.cpp
+### Dans solver/src/solver.cpp
 ```cpp
-complex_mat Solver::FTCS_derivation(complex_mat psi_t)
+void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
-  complex_mat psi_t_dt = init_c_mat(nx, ny);
-
-  double dt = dt_vals[0];
-  int dx = (x_max - x_min) / nx;
-  int dy = (y_max - y_min) / ny;
-
-  for(uword i = 1; i < nx-1; ++i)
-  {
-    for(uword j = 1; j < ny-1; ++j)
+    for (int i = 0; i < 1000; ++i)
     {
-      double A = ((-1/h_bar)*V(i,j) - ((h_bar/m) * (1/dx*dx + 1/dy*dy)));
-      double B = (h_bar/2*m);
-      double psi_x_im = psi_t.im(i+1,j) + psi_t.im(i-1,j);
-      double psi_y_im = psi_t.im(i,j+1) + psi_t.im(i,j-1);
-      double psi_x_re = psi_t.re(i+1,j) + psi_t.re(i-1,j);
-      double psi_y_re = psi_t.re(i,j+1) + psi_t.re(i,j-1);
+        // Update using FTCS
+        psi_real_next.submat(1, 1, nx_2, ny_2) =
+            psi_real.submat(1, 1, nx_2, ny_2) - dt * (
+                A % psi_imag.submat(1, 1, nx_2, ny_2)
+                +
+                coef_x * (psi_imag.submat(2, 1, nx_1, ny_2) + 
+                          psi_imag.submat(0, 1, nx_3, ny_2))
+                +
+                coef_y * (psi_imag.submat(1, 2, nx_2, ny_1) + 
+                          psi_imag.submat(1, 0, nx_2, ny_3))
+                );
 
-      psi_t_dt.re(i,j) = psi_t.re(i,j) - dt * (A * psi_t.im(i,j) + B * ((1/dx*dx) * psi_x_im + (1/dy*dy) * psi_y_im));
-      psi_t_dt.im(i,j) = psi_t.im(i,j) + dt * (A * psi_t.re(i,j) + B * ((1/dx*dx) * psi_x_re + (1/dy*dy) * psi_y_re));
+        psi_imag_next.submat(1, 1, nx_2, ny_2) =
+            psi_imag.submat(1, 1, nx_2, ny_2) + dt * (
+                A % psi_real.submat(1, 1, nx_2, ny_2) 
+                +
+                coef_x * (psi_real.submat(2, 1, nx_1, ny_2) + 
+                          psi_real.submat(0, 1, nx_3, ny_2)) 
+                +
+                coef_y * (psi_real.submat(1, 2, nx_2, ny_1) + 
+                          psi_real.submat(1, 0, nx_2, ny_3))
+                );
+
+        // Swap pointers instead of copying matrices
+        std::swap(psi_real, psi_real_next);
+        std::swap(psi_imag, psi_imag_next);
+
+        // Update temporal informations
+        info.stepcounter++;
+        info.t += dt;
     }
-  }
-  return psi_t_dt;
 }
 ```
 
 ---
 class: middle
-# IV - Solveur - Résulats FCTS
+# IV - Solveur - Expliquation de l'implémentation
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-Gaussienne et potentiel harmonique
-<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
-    <source src="videos/FTCS_video.mp4" type="video/webm" />
-    </video>
+
+- Utilisation de submat pour ne pas faire de copies et d'allocations inutiles
+- `swap` au lieu de faire une copie
+<img src="images/submat.png" style="max-width: 75%; height: auto;">
+
+<p style="font-size: 12px;">(Merci Lorenzo)</p>
+
 
 ---
 class: middle
-# IV - Solveur - Résulats BCTS
+# IV - Solveur - Méthode BCTS
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-Gaussienne et potentiel harmonique
-<video controls="yes" preload="auto" width="100%" height="500px" data-setup="{}" loop>
-    <source src="videos/BTCS_video.mp4" type="video/webm" />
-    </video>
+
+### Dans solver/src/solver.cpp
+```cpp
+void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
+{
+    for (int i = 0; i < 50; ++i)
+    {
+        // Initialize values for the iteration
+        psi_real_next = psi_real;
+        psi_imag_next = psi_imag;
+
+        double max_diff = 1.0; // Initial value greater than epsilon
+        int iter_count = 0;
+
+        while (max_diff > epsilon && iter_count < max_iter)
+        {
+            // Save previous solutions to compute the difference
+            psi_real_prev = psi_real_next;
+            psi_imag_prev = psi_imag_next;
+
+            // BTCS method
+            ...
+
+            // Compute the maximum difference to check for convergence
+            diff_real = abs(psi_real_next - psi_real_prev);
+            diff_imag = abs(psi_imag_next - psi_imag_prev);
+            max_diff = std::max(diff_real.max(), diff_imag.max());
+
+            iter_count++;
+            if (iter_count == max_iter)
+            {
+                cout << "MAX_ITER reached without convergence" << endl;
+            }
+        }
+        // Update states
+        ...
+    }
+}
+```
+
+---
+class: middle
+# IV - Solveur - Retour au python
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+### Dans solver/src/main.py
+```python
+match method:
+	case "FTCS":
+		while info.t < t_max:
+			# Call C++ function
+			solver.FTCS_derivation(psi_real, psi_imag, info)
+
+			norm = solver.Calc_norm(psi_real, psi_imag)
+			#print("Norm:", norm)
+			if norm > 3.0:
+				print("Too high norm ( > 3), stopping simulation")
+				break
+			elif norm < 0.1:
+				print("Too low norm ( < 0.1), stopping simulation")
+				break
+
+			# Write the files in the DB
+			db.InsertMatrix(exp_name, info.t, psi_real, psi_imag)
+			#print("File", info.stepcounter, "written in the database")
+
+    ...other methods...
+```
+### Dans solver/src/solver.cpp
+```cpp
+double Solver::Calc_norm(arma::mat &psi_real, arma::mat &psi_imag)
+{
+    double norm = 0.0;
+    arma::cx_mat psi = arma::cx_mat(psi_real, psi_imag);
+    norm = arma::accu(psi % arma::conj(psi) * dx * dy).real();
+    return norm;
+}
+```
 
 ---
 class: middle
 # IV - Solveur - Bindings python
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-#### Dans solver.i
+### Dans solver/src/solver.i
 ```cpp
 %module solver
-%{
-#include "../include/solver.h"
-#include "../include/complexmat.h"
-%}
-%include "../include/solver.h"
-%include "../include/complexmat.h"
+%include "exception.i"
 
+...
+
+%{
+#define SWIG_FILE_WITH_INIT
+#include "../include/solver.h"
+#include "../include/TimeStepInfo.h"
+%}
+
+%include "armanpy.i"
+
+%include "../include/solver.h"
+%include "../include/TimeStepInfo.h"
 ```
-#### Dans setup.py
-```cpp
+
+### Dans solver/src/solver.py
+```python
+import numpy
 from setuptools import setup, Extension
 
-module1 = Extension('_solver', sources=['solver.i','../src/solver.cpp', '../src/complexmat.cpp'], swig_opts=["-c++"])
+module1 = Extension('_solver',
+                    include_dirs = ['../include/armanpy/', numpy.get_include()],
+                    libraries = ['m', 'z', 'armadillo'],
+                    sources = ['solver.i', '../src/solver.cpp'],
+                    swig_opts = ["-c++", "-Wall", "-I.", "-I../include/armanpy/"])
 
-setup(name='package_solver',
-      py_modules=['solver'],
-      version='1.0',
-      description="This package implements the solver's functions",
-      ext_modules=[module1])
-
+setup( name='solver',
+       version='1.0',
+       ext_modules=[module1],
+       install_requires=['numpy', 'matplotlib', 'swig', 'setuptools'],
+)
 ```
 
 ---
 class: middle
-# V - Post processor -
+# V - Post processor - Création des fichiers VTK
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-## Cette partie n'a pas encore été traitée.
+On crée des **.vtr** pour pouvoir fixer les coordonnées sur les axes.
 
-Voici cependant nos axes de réflexions :
+### Dans post_processor/main.py
 
-1. extractions des matrices d'une expérience dans la base de donnée
+```python
+def create_vtr_files(exp_name, state_list, x_min, x_max, y_min, y_max, nx, ny, output_dir="./vtr_files"):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-2. convertion de chaque matrice en image
+    file_paths = []
 
-3. création d'une vidéo à partir des images obtenues
+    for idx, state in enumerate(state_list):
+        t, psi_re, psi_im = state
+        
+        # Probability density, reshaped to fit gridToVTK
+        psi_squared = (psi_re**2 + psi_im**2).reshape((ny, nx, 1))
+        
+        # Name of the file 
+        filename = f"{output_dir}/{exp_name}_{idx:04d}"
+        
+        # Export to VTR
+        x = np.linspace(x_min, x_max, nx, dtype=np.float32)
+        y = np.linspace(y_min, y_max, ny, dtype=np.float32)
+        z = np.linspace(0.0, np.max(psi_squared), 1, dtype=np.float32)
+        
+        gridToVTK(
+            filename,
+            x, y, z,
+            pointData={"density": psi_squared}
+        )
+        file_paths.append(f"{filename}.vtr")
+        #print(f"File generated: {filename}.vtr (t={t})")
+```
+
+---
+class: middle
+# VI - Résultats - Fentes d'Young - FTCS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+<video width="100%" height="500px" controls="yes" preload="auto">
+    <source src="videos/young_F.webm" type="video/webm">
+    Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+    </video>
+
+---
+class: middle
+# VI - Résultats - Fentes d'Young - BTCS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+<video width="100%" height="500px" controls="yes" preload="auto">
+    <source src="videos/young_B.webm" type="video/webm">
+    Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+    </video>
+
+---
+class: middle
+# VI - Résultats - Fentes d'Young - CTCS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+<video width="100%" height="500px" controls="yes" preload="auto">
+    <source src="videos/young_C.webm" type="video/webm">
+    Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+    </video>
+
+---
+class: middle
+# VI - Résultats - Mur de potentiel (effet tunel) - CTCS
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+<video width="100%" height="500px" controls="yes" preload="auto">
+    <source src="videos/wall_C.webm" type="video/webm">
+    Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+    </video>
+
+---
+class: middle
+# VI - Résultats - Oscillateur harmonique 2D - 
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+<video width="100%" height="500px" controls="yes" preload="auto">
+    <source src="videos/2D-H0_C.webm" type="video/webm">
+    Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+    </video>
+
+---
+class: middle
+# VII - Expérience utilisateur - Initialisation de l'environnement
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Il y a différentes étapes à exécuter par l'utilisateur pour lancer le projet.
+
+- Télécharger MongoDB
+- Initialiser le projet
+- Lancer les modules
+
+### Initialisation dans Makefile
+```Makefile
+init: venv bindings
+
+venv:
+	@echo "=========== Creating a virtual environnement with useful modules ==========="
+	@echo "..."
+	@rm -rf psa_venv
+	@python3 -m venv psa_venv && psa_venv/bin/pip install -r requirements.txt > /dev/null
+	@echo "====================== Virtual environnement created ======================="
+	@echo ""
+	@echo ""
+
+bindings:
+	@echo "========================== Creating C++ bindings ==========================="
+	@echo "..."
+	@make -s -C solver/src > /dev/null
+	@echo ""============================ Bindings created ============================="
+	@echo ""
+	@echo ""
+```
+
+### Dans solver/src/Makefile
+```Makefile
+all:
+	@rm -rf solver.py solver_wrap.cpp build psa_solver.egg-info
+	@../../psa_venv/bin/pip install .
+```
+
+---
+class: middle
+# VII - Expérience utilisateur - Utilisation des modules
+.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
+
+Il y a différentes règles qui permettent de lancer les modules indépendamment, ou toutes à la suite.
+
+### Dans Makefile
+```Makefile
+exp:
+	@echo "=========================== Computing solutions  ==========================="
+	@make -s field_generator solver post_processor 
+	@echo "========================== Computation finished ============================"
+
+field_generator:
+	@make -s -C field_generator/
+
+solver:
+	@make -s -C solver/ run
+
+post_processor:
+	@make -s -C post_processor/
+```
+
+Les fichiers vtk sont générés dans *post_processor/vtr_files*
+```bash
+$ ls post_processor/vtr_files
+experience_name_0000.vtr  experience_name_0002.vtr  experience_name_0004.vtr   experience_name_0006.vtr
+experience_name_0001.vtr  experience_name_0003.vtr  experience_name_0005.vtr   ...
+```
+
 
 
     </textarea>

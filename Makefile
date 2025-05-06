@@ -18,14 +18,12 @@ bindings:
 	@echo "========================== Creating C++ bindings ==========================="
 	@echo "..."
 	@make -s -C solver/src > /dev/null
-	@echo "============================ Bindings created ============================="
-	@echo ""
-	@echo ""
+	@echo "============================ Bindings created =============================="
 
 exp:
 	@echo "=========================== Computing solutions  ==========================="
 	@make -s field_generator solver post_processor 
-	@echo "========================== Comptation finished ============================"
+	@echo "=========================== Computation finished ==========================="
 
 field_generator:
 	@make -s -C field_generator/
