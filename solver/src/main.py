@@ -3,16 +3,23 @@ import numpy as np
 from solver import TimeStepInfo
 import sys
 import os
+from pathlib import Path
 
-# Ajoute la racine du projet au path Python
+# Adding root of the project to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-import database.databaseManager as db 
+import database.databaseManager as db
 import json_utils as js_uti
 
-if (len(sys.argv) != 2):
-	print("Usage;", sys.argv[0], "<path/to/json>")
+# Check the number of arguments
+if len(sys.argv) != 2:
+	print("Usage:", sys.argv[0], "<path/to/json>")
 	exit(1)
-json_path = sys.argv[1]
+
+json_path = Path(sys.argv[1])
+
+if not json_path.is_file():
+	print(f"{json_path} is not a valid file")
+	exit(1)        
 
 # Read JSON file
 (exp_name, nx, ny, x_min, x_max, y_min, y_max, h, m, w, kx, ky, 
