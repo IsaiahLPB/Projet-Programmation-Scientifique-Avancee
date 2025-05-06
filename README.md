@@ -10,6 +10,7 @@ Exécuter les commandes suivantes, une fois la base de donnée téléchargée.
 - ```mongosh mongodb://127.0.0.1```
 - ```use results```
 - ```db.createUser({ user: "user0", pwd: "pwd0", roles: ["dbAdmin"]})```
+
 Pour afficher les différentes expériences dans la base de donée
 - ```db.experienceName.find()```
 
