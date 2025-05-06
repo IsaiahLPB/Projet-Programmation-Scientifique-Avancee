@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.special as sp
 from numpy.polynomial.hermite import Hermite
 import matplotlib.pyplot as plt
 import json
@@ -125,16 +126,17 @@ def calc2DHOPsi0():
 	"""
 	coeff_x = [0 for i in range(psi_2DH0_nx - 1)]
 	coeff_x.append(1)
-	H3_x = Hermite([coeff_x])
+	print("coeff_x", coeff_x)
+	H3_x = Hermite(coeff_x)
 	coeff_y = [0 for i in range(psi_2DH0_ny - 1)]
 	coeff_y.append(1)
-	H3_y = Hermite([coeff_y])
+	H3_y = Hermite(coeff_y)
 
 	x = np.linspace(-10, 10, n_x)
 	y = np.linspace(-10, 10, n_y)
 	X, Y = np.meshgrid(x, y)
-	psi_x = (1/np.sqrt(2**psi_2DH0_nx * np.math.factorial(psi_2DH0_nx))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
-	psi_y = (1/np.sqrt(2**psi_2DH0_ny * np.math.factorial(psi_2DH0_ny))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
+	psi_x = (1/np.sqrt(2**psi_2DH0_nx * sp.factorial(psi_2DH0_nx))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
+	psi_y = (1/np.sqrt(2**psi_2DH0_ny * sp.factorial(psi_2DH0_ny))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
 
 	return psi_x * psi_y
 
@@ -160,7 +162,7 @@ def calcMult2DHOPsi0():
 		x = np.linspace(-10, 10, n_x)
 		y = np.linspace(-10, 10, n_y)
 		X, Y = np.meshgrid(x, y)
-		psi_x = (1/np.sqrt(2**psi_2DH0_nx[i] * np.math.factorial(psi_2DH0_nx[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
+		psi_x = (1/np.sqrt(2**psi_2DH0_nx[i] * sp.factorial(psi_2DH0_nx[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
 		psi_y = (1/np.sqrt(2**psi_2DH0_ny[i] * np.math.factorial(psi_2DH0_ny[i]))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
 		psi_array.append(psi_x * psi_y)
 	return reduce(np.multiply, psi_array)
@@ -207,10 +209,6 @@ def calcV():
 			print("Not a valid value for v")
 			exit(2)
 
-# Calculate the wave function according to the psi value :
-# if psi = 0, use gaussian wave packet with initial speed
-# if psi = 1, use a solution of the 2D-HO
-# if psi = 2, use a combination of solution of the 2D-HO
 def calcPsi():
 	"""
 	@brief Calculate the wave function according to the psi value
@@ -221,12 +219,15 @@ def calcPsi():
 	@return psi0Im : The imaginary part of the wave function
 	"""
 	match psi_type:
-		case 0:
+		case "Gaussian":
 			return calcGaussPsi0()
-		case 1:
+		case "2D-HO":
 			return calc2DHOPsi0(), np.zeros((n_x, n_y))
-		case 2:
+		case "2D-HO-mult":
 			return calcMult2DHOPsi0(), np.zeros((n_x, n_y))
+		case _:
+			print("Not a valid value for psi")
+			exit(3)
 		
 def dataCleaner(data):
 	"""

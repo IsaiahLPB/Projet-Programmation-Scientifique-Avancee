@@ -23,6 +23,8 @@ Le champs **V** doit correspondre à une entrée parmi : **Harmonic**, **Null** 
 
 Le champs **image_V** doit correspondre au nom de l'image souhaité. Les images doit être stockée dans le dossier *images* à la racine. Deux images sont déjà disponible dans le dossier.
 
+Le champs **type** pour **psi** doit correspondre à une des trois entrées suivantes : "Gaussian" pour simuler un vague gaussienne, "2DH0" pour simuler une solution d'un oscillateur harmonique ou "2DH0-mult" pour une combinaisson de solutions d'oscillateur harmonique.
+
 ## Lancer une expérience
 Ensuite, entrez la commande `make exp` pour commencer l'expérience paramétrée dans le fichier JSON. Cela lance les trois modules de notre projet à la suite.
 

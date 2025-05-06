@@ -35,7 +35,7 @@ II. [Base de donnée](index.html#)
 III. [Field generator](index.html#)
 
 1. Fichier d'entrée JSON
-2. Différents potentiels implémentés
+2. Fonctionnement du Field generator
 
 IV. [Solveur Implémentation](index.html#)
     
@@ -276,9 +276,10 @@ class: middle
 
 L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il souhaite réaliser.
 
-#### Dans consts.json :
+#### Dans consts.JSON :
 ```json
 {
+    "name": "experience_name",
     "constantes": {
         "n_x": 101,
         "n_y": 101,
@@ -290,17 +291,21 @@ L'utilisateur entre dans le fichier JSON les paramètres de l'expérience qu'il 
         "m": 1,
         "w": 1,
         "k_x": 0,
-        "k_y": 0,
-        "dt": [
-            0.000025,
-            0.0005,
-            0.005
-        ]
+        "k_y": 0
     },
-    "paramètres utilisateurs": {
-        "psi": 0,
-        "V": 0,
-        "image_V": "/path/to/image",
+    "user parameters": {
+        "psi": {
+            "type": 0,
+            "nb": 1,
+            "2DH0_nx": 2,
+            "2DH0_ny": 0,
+            "x0": 0,
+            "y0": 0
+        },
+        "V": "Harmonic",
+        "image_V": "/path/to/image.png",
+        "method": "FTCS",
+        "dt": "default",
         "t_max": 10
     }
 }
@@ -311,58 +316,29 @@ class: middle
 # III - Field generator - Fonctionnement du main
 .footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
 
-Fonctionnement global du field generator.
+## Fonctionnement global du field_generator :
 
 #### Dans main.py
+
+On calcule d'abord le potentiel, la fonction d'onde psi et le hash du  fichier JSON associé à l'expérience.
+
+Puis on vérifie si le nom de l'expérience donné par l'utilisateur n'existe pas déja dans la base de donnée.
+Si le nom existe déjà, on vérifie si le hash du JSON de l'expérience associé est identique à celui proposé.
+Si tel est le cas, on demande à l'utilisateur s'il souhaite écraser l'expérience ou non.
+
+Puis, on vérifie si le nouveau Hash n'existe pas déjà dans la base de donnée avant de créer une nouvelle entrée dedans.
+
 ```python
 def main():
-	v = consts["paramètres utilisateurs"]["V"]
-	# Calculate the potential according to the V value :
-	Vmat = calcV()
-	# Plot the potential
-	plotV()
-	# Calculate the wave function according to the psi value :
-	psi0 = calcPsi()
-	# Plot the wave function
-	# Calculate the hash of the experiment
-	# Send the data in the database if the experiment is not already done
-```
+    global Vmat, psi0Re, psi0Im, exp_name, data, hash
+    # Calculate the potential according to the V value :
+    Vmat = calcV()
 
+    # Calculate the wave function according to the psi value :
+    psi0Re, psi0Im = calcPsi()
 
----
-class: middle
-# III - Field generator - Différents potentiels implémentés
-.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-
-#### Dans main.py
-
-```python
-# Initialize the potential grid
-Vmat = [[0 for i in range(n_x)] for j in range(n_y)]
-
-# Calculate the potential centered in (0, 0) at each point in the grid following this equation:
-# V = (x² + y²) / 9
-def calcHarmV():
-	x = np.linspace(-10, 10, n_x)
-	y = np.linspace(-10, 10, n_y)
-	for i in range(n_x//2+1):
-		for j in range(n_y//2+1):
-			Vmat[i][j] = (x[i]**2 + y[j]**2) / 9
-			Vmat[i][n_y - j - 1] = Vmat[i][j]
-			Vmat[n_x - i - 1][j] = Vmat[i][j]
-			Vmat[n_x - i - 1][n_y - j - 1] = Vmat[i][j]
-	return Vmat
-
-def calcV(v):
-	match v:
-		case 0:
-			print("Not implemented yet, will use the image given in the consts.JSON file to create the potential")
-		case 1:
-			return Vmat
-		case 2:
-			return calcHarmV()
-		case _:
-			print("Not a valid value for v")
+    # Calculate the hash of the experiment
+    hash = calcJSONHash()
 ```
 
 ---
@@ -373,40 +349,34 @@ class: middle
 #### Dans main.py
 
 ```python
-def calcGaussPsi0Re():
-	A = np.sqrt(2 / np.pi * (w**2))
-	x = np.linspace(-10, 10, n_x)
-	y = np.linspace(-10, 10, n_y)
-	psi0Re = np.zeros((n_x, n_y))
-	for i in range(n_x):
-		for j in range(n_y):
-			psi0Re[i][j] = A * np.exp(- (x[i]**2 + y[j]**2) / (2 * w**2)) * np.cos(kx * x[i] + ky * y[j])
-	return psi0Re
+    val = True
+        if db.AlreadyExist(exp_name):
+            print("An experiment with the same name already exists.")
+            if db.AlreadyExistHash(hash):
+                print("An experiment with the same name and the same hash already exists.")
+                print("Will use the results of this experiment to continue.")
+                val = False
+            while val:
+                u_input = input("Do you want to overwrite it ? (y/N) : ")
+                if u_input == "y":
+                    db.DeleteCollection(exp_name)
+                    val = False
+                elif u_input == "N":
+                    exp_name = input("Please choose a new name for the experiment: ")
+                    val = False
+                elif u_input == "exit":
+                    exit(1)
+                else:
+                    print("Invalid input, please choose y or n")
 
-def calcGaussPsi0Im():
-	A = np.sqrt(2 / np.pi * (w**2))
-	x = np.linspace(-10, 10, n_x)
-	y = np.linspace(-10, 10, n_y)
-	psi0Im = np.zeros((n_x, n_y))
-	for i in range(n_x):
-		for j in range(n_y):
-			psi0Im[i][j] = A * np.exp(- (x[i]**2 + y[j]**2) / (2 * w**2)) * np.sin(kx * x[i] + ky * y[j])
-	return psi0Im
+    if not db.AlreadyExistHash(hash):
+        file = "../consts.JSON"
+        with open(file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        db.CreateExperience(exp_name, data, hash, Vmat)
+        db.InsertMatrix(exp_name, 0, psi0Re, psi0Im)
+        print("Experience initialized")
 ```
-
----
-class: middle
-# III - Field generator - Mécanisme de reprise de calcul
-.footnote[E.Onal, S. Darnault, A. Marquis - ENSIIE - 2025]
-
-#### Travail encore à réaliser
-
-Il faut encore implémenter le mécanisme de reprise de calcul. Pour cela, il faut que le field generator puisse envoyer les données dans une base de donnée et que l'on vérifie si l'expérience n'a pas déjà été réalisée.
-
-Si elle a déjà été réalisée en entier, on affichera le résultat de l'expérience sans avoir à refaire le calcul.
-Si elle n'a pas été réalisée dans sa totalité, on continuera le calcul à partir de la dernière valeur de psi enregistrée dans la base de donnée.
-
-Pour savoir si l'expérience a déjà été réalisée, on peut utilisera le hash de l'expérience que l'on déterminera à partir des paramètres initiaux de l'expérience.
 
 ---
 class: middle

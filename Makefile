@@ -18,7 +18,7 @@ bindings:
 	@echo "========================== Creating C++ bindings ==========================="
 	@echo "..."
 	@make -s -C solver/src > /dev/null
-	@echo ""============================ Bindings created ============================="
+	@echo "============================ Bindings created ============================="
 	@echo ""
 	@echo ""
 
