@@ -80,6 +80,8 @@ def calcVFromImage():
     	# Convertir en niveaux de gris
 		gray = np.dot(img_rgb, [0.2989, 0.5870, 0.1140])
 
+		gray = gray / 255 * 100000000 # Valeur arbitraire
+
 	return gray
 
 def plotV():
