@@ -11,11 +11,18 @@ using namespace std;
 
 using json = nlohmann::json;
 
+/**
+ * @brief Construct a new Solver:: Solver object
+ * @details Initializes some variable to not compute them again later
+ * 
+ * @param V Matrix of the field potential
+ * @param path A string representing the path to the JSON file
+ */
 Solver::Solver(mat V, const char *path)
 {
     ifstream fichier(path);
     if (!fichier.is_open()) {
-        std::cerr << "Erreur d'ouverture du fichier JSON." << std::endl;
+        std::cerr << "Error while opening the JSON file" << std::endl;
         exit(1);
     }
 
@@ -49,18 +56,18 @@ Solver::Solver(mat V, const char *path)
             }
         } else {
             try {
-                std::cout << "Valeur de dt dans le JSON: \"" << dt_str << "\"" << std::endl;
+                std::cout << "dt valor readed in the JSON: \"" << dt_str << "\"" << std::endl;
                 dt = std::stod(dt_str);
             } catch (const std::exception& e) {
-                std::cerr << "Erreur de conversion de dt: " << e.what() << std::endl;
+                std::cerr << "Error while converting dt: " << e.what() << std::endl;
                 throw;
             }
         }
     } else if (dt_json.is_number()) {
         dt = dt_json;
     } else {
-        std::cerr << "Champ 'dt' invalide ou manquant" << std::endl;
-        throw std::runtime_error("Champ 'dt' invalide");
+        std::cerr << "'dt' field invalid or missing" << std::endl;
+        throw std::runtime_error("'dt' field invalid");
     }
 
 	dx = (x_max - x_min) / (nx - 1);
@@ -85,11 +92,18 @@ Solver::Solver(mat V, const char *path)
     psi_imag_next.zeros(nx, ny);
 }
 
+/**
+ * @brief This function uses an Explicit method (FTCS) to compute some iterations of psi(t+dt)
+ * 
+ * @param psi_real Real part of the matrix
+ * @param psi_imag Imaginary part of the matrix
+ * @param info Informations about the current time and the number of iteration since the last matrix was given to the python bloc
+ */
 void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
     for (int i = 0; i < 1000; ++i)
     {
-        // Mise à jour intérieure selon FTCS
+        // Update using FTCS
         psi_real_next.submat(1, 1, nx_2, ny_2) =
             psi_real.submat(1, 1, nx_2, ny_2)
             - dt * (
@@ -118,121 +132,165 @@ void Solver::FTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
                 )
             );
 
-        // Échange les pointeurs au lieu de copier les matrices
+        // Swap pointers instead of copying matrixes
         std::swap(psi_real, psi_real_next);
         std::swap(psi_imag, psi_imag_next);
 
+        // Update temporal informations
         info.stepcounter++;
         info.t += dt;
     }
 }
 
-
+/**
+ * @brief This function uses an Implicit method (BTCS) to compute some iterations of psi(t+dt)
+ * 
+ * @param psi_real Real part of the matrix
+ * @param psi_imag Imaginary part of the matrix
+ * @param info Informations about the current time and the number of iteration since the last matrix was given to the python bloc
+ */
 void Solver::BTCS_derivation(mat &psi_real, mat &psi_imag, TimeStepInfo &info)
 {
+    // Temporary matrixes for iterations
+    mat psi_real_new = psi_real;
+    mat psi_imag_new = psi_imag;
+    mat psi_real_iter, psi_imag_iter;
+    
     for (int i = 0; i < 50; ++i)
     {
-        // Variables temporaires pour stocker les anciennes valeurs au début du pas de temps
-        mat psi_real_old = psi_real;
-        mat psi_imag_old = psi_imag;
+        psi_real_iter = psi_real;
+        psi_imag_iter = psi_imag;
         
-        // Initialisation des matrices "next" avec les valeurs actuelles
-        psi_real_next = psi_real;
-        psi_imag_next = psi_imag;
+        double max_diff = 1.0;  // Initial value above epsilon
+        int iter_count = 0;
+        const int max_iter = 100;  // Maximum number of iteration (to prevent infite loop)
         
-        // Méthode itérative d'Euler pour approximer la solution implicite
-        iter = 0;
-        
-        // Boucle de convergence
-        while (error > epsilon && iter < max_iter)
+        while (max_diff > epsilon && iter_count < max_iter)
         {
-            // Sauvegarde des valeurs avant la mise à jour pour calculer l'erreur
-            mat psi_real_prev = psi_real_next;
-            mat psi_imag_prev = psi_imag_next;
+            // Sauvegarde des solutions précédentes pour calculer la différence
+            // Save previous solutions to compute the difference
+            mat psi_real_prev = psi_real_iter;
+            mat psi_imag_prev = psi_imag_iter;
             
-            // Mise à jour implicite (BTCS) pour la partie réelle
-            psi_real_next.submat(1, 1, nx_2, ny_2) =
-                psi_real_old.submat(1, 1, nx_2, ny_2)
+            // Using BTCS method to compute values at t+dt
+            psi_real_iter.submat(1, 1, nx_2, ny_2) = 
+                psi_real.submat(1, 1, nx_2, ny_2)
                 - dt * (
-                    A % psi_imag_next.submat(1, 1, nx_2, ny_2)
+                    A % psi_imag_iter.submat(1, 1, nx_2, ny_2)
                     + coef_x * (
-                        psi_imag_next.submat(2, 1, nx_1, ny_2) +
-                        psi_imag_next.submat(0, 1, nx_3, ny_2)
+                        psi_imag_iter.submat(2, 1, nx_1, ny_2) +
+                        psi_imag_iter.submat(0, 1, nx_3, ny_2)
                     )
                     + coef_y * (
-                        psi_imag_next.submat(1, 2, nx_2, ny_1) +
-                        psi_imag_next.submat(1, 0, nx_2, ny_3)
+                        psi_imag_iter.submat(1, 2, nx_2, ny_1) +
+                        psi_imag_iter.submat(1, 0, nx_2, ny_3)
                     )
                 );
-            
-            // Mise à jour implicite (BTCS) pour la partie imaginaire
-            psi_imag_next.submat(1, 1, nx_2, ny_2) =
-                psi_imag_old.submat(1, 1, nx_2, ny_2)
+                
+            psi_imag_iter.submat(1, 1, nx_2, ny_2) = 
+                psi_imag.submat(1, 1, nx_2, ny_2)
                 + dt * (
-                    A % psi_real_next.submat(1, 1, nx_2, ny_2)
+                    A % psi_real_iter.submat(1, 1, nx_2, ny_2)
                     + coef_x * (
-                        psi_real_next.submat(2, 1, nx_1, ny_2) +
-                        psi_real_next.submat(0, 1, nx_3, ny_2)
+                        psi_real_iter.submat(2, 1, nx_1, ny_2) +
+                        psi_real_iter.submat(0, 1, nx_3, ny_2)
                     )
                     + coef_y * (
-                        psi_real_next.submat(1, 2, nx_2, ny_1) +
-                        psi_real_next.submat(1, 0, nx_2, ny_3)
+                        psi_real_iter.submat(1, 2, nx_2, ny_1) +
+                        psi_real_iter.submat(1, 0, nx_2, ny_3)
                     )
                 );
             
-            // Calcul de l'erreur entre deux itérations successives
-            error = norm(psi_real_next - psi_real_prev, "fro") + 
-                    norm(psi_imag_next - psi_imag_prev, "fro");
+            // Compute the maximal difference to check convergence
+            mat diff_real = abs(psi_real_iter - psi_real_prev);
+            mat diff_imag = abs(psi_imag_iter - psi_imag_prev);
+            max_diff = std::max(diff_real.max(), diff_imag.max());
             
-            iter++;
+            iter_count++;
         }
         
-        // Une fois la convergence atteinte, on met à jour psi_real et psi_imag pour le prochain pas de temps
-        std::swap(psi_real, psi_real_next);
-        std::swap(psi_imag, psi_imag_next);
+        // Swap pointers instead of copying matrixes
+        std::swap(psi_real, psi_real_iter);
+        std::swap(psi_imag, psi_imag_iter);
         
+        // Update temporal informations
         info.stepcounter++;
         info.t += dt;
     }
 }
 
+/**
+ * @brief This function uses the Crank-Nicolson method (CTCS) to compute some iterations of psi(t+dt)
+ * 
+ * @param psi_real Real part of the matrix
+ * @param psi_imag Imaginary part of the matrix
+ * @param info Informations about the current time and the number of iteration since the last matrix was given to the python bloc
+ */
 void Solver::CTCS_derivation(arma::mat &psi_real, arma::mat &psi_imag, TimeStepInfo &info)
 {
+    // Temporary matrixes for iterations
+    mat psi_real_new = psi_real;
+    mat psi_imag_new = psi_imag;
+    mat psi_real_iter, psi_imag_iter;
+    
     for (int i = 0; i < 5; ++i)
     {
-        // Mise à jour intérieure selon CTCS
-        psi_real_next.submat(1, 1, nx_2, ny_2) =
-            psi_real.submat(1, 1, nx_2, ny_2)
-            - dt * (
-                A % psi_imag.submat(1, 1, nx_2, ny_2)
-                + coef_x * (
-                    psi_imag.submat(2, 1, nx_1, ny_2) +
-                    psi_imag.submat(0, 1, nx_3, ny_2)
-                )
-                + coef_y * (
-                    psi_imag.submat(1, 2, nx_2, ny_1) +
-                    psi_imag.submat(1, 0, nx_2, ny_3)
-                )
-            );
-
-        psi_imag_next.submat(1, 1, nx_2, ny_2) =
-            psi_imag.submat(1, 1, nx_2, ny_2)
-            + dt * (
-                A % psi_real.submat(1, 1, nx_2, ny_2)
-                + coef_x * (
-                    psi_real.submat(2, 1, nx_1, ny_2) +
-                    psi_real.submat(0, 1, nx_3, ny_2)
-                )
-                + coef_y * (
-                    psi_real.submat(1, 2, nx_2, ny_1) +
-                    psi_real.submat(1, 0, nx_2, ny_3)
-                )
-            );
-
-        // Échange les pointeurs au lieu de copier les matrices
-        std::swap(psi_real, psi_real_next);
-        std::swap(psi_imag, psi_imag_next);
-
+        psi_real_iter = psi_real;
+        psi_imag_iter = psi_imag;
+        
+        double max_diff = 1.0;  // Initial value above epsilon
+        int iter_count = 0;
+        const int max_iter = 100;  // Maximum number of iteration (to prevent infite loop)
+        
+        while (max_diff > epsilon && iter_count < max_iter)
+        {
+            // Sauvegarde des solutions précédentes pour calculer la différence
+            // Save previous solutions to compute the difference
+            mat psi_real_prev = psi_real_iter;
+            mat psi_imag_prev = psi_imag_iter;
+            
+            // Using BTCS method to compute values at t+dt
+            psi_real_iter.submat(1, 1, nx_2, ny_2) = 
+                psi_real.submat(1, 1, nx_2, ny_2)
+                - dt * (
+                    A % psi_imag_iter.submat(1, 1, nx_2, ny_2)
+                    + coef_x * (
+                        psi_imag_iter.submat(2, 1, nx_1, ny_2) +
+                        psi_imag_iter.submat(0, 1, nx_3, ny_2)
+                    )
+                    + coef_y * (
+                        psi_imag_iter.submat(1, 2, nx_2, ny_1) +
+                        psi_imag_iter.submat(1, 0, nx_2, ny_3)
+                    )
+                );
+                
+            psi_imag_iter.submat(1, 1, nx_2, ny_2) = 
+                psi_imag.submat(1, 1, nx_2, ny_2)
+                + dt * (
+                    A % psi_real_iter.submat(1, 1, nx_2, ny_2)
+                    + coef_x * (
+                        psi_real_iter.submat(2, 1, nx_1, ny_2) +
+                        psi_real_iter.submat(0, 1, nx_3, ny_2)
+                    )
+                    + coef_y * (
+                        psi_real_iter.submat(1, 2, nx_2, ny_1) +
+                        psi_real_iter.submat(1, 0, nx_2, ny_3)
+                    )
+                );
+            
+            // Compute the maximal difference to check convergence
+            mat diff_real = abs(psi_real_iter - psi_real_prev);
+            mat diff_imag = abs(psi_imag_iter - psi_imag_prev);
+            max_diff = std::max(diff_real.max(), diff_imag.max());
+            
+            iter_count++;
+        }
+        
+        // Swap pointers instead of copying matrixes
+        std::swap(psi_real, psi_real_iter);
+        std::swap(psi_imag, psi_imag_iter);
+        
+        // Update temporal informations
         info.stepcounter++;
         info.t += dt;
     }
