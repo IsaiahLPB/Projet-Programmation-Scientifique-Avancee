@@ -39,8 +39,8 @@ Solver::Solver(mat V, const char *path)
     y_min = data["constantes"]["y_min"];
     y_max = data["constantes"]["y_max"];
 
-    method = data["paramètres utilisateurs"]["method"];
-    auto dt_json = data["paramètres utilisateurs"]["dt"];
+    method = data["user parameters"]["method"];
+    auto dt_json = data["user parameters"]["dt"];
 
     if (dt_json.is_string()) {
         std::string dt_str = dt_json;
