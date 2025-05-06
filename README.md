@@ -6,13 +6,12 @@ Ce projet utilise MongoDC pour stocker les données en local sur la machine. L'u
 
 À la racine du projet utilisez la commande `make init` pour créer un environnement virtuel pour Python. Cela créra l'environnement virtuel et chargera les modules nécessaires au bon déroulement du projet. Cette commande crée ensuite les bindings Python, qui permettent d'appeler des fonctions C++ depuis un programme Python.
 
-Dans un premier temps, modifiez le fichier `consts.JSON` à la racine du projet pour modifier les paramètres de l'expérience que vous souhaitez réaliser.
+Dans un premier temps, modifiez le fichier *consts.JSON* à la racine du projet pour modifier les paramètres de l'expérience que vous souhaitez réaliser.
 
 ## Préparer un expérience
-Le champs `V` doit correspondre à une entrée parmi : `Harmonic`, `Null` et `Image`, qui permettent de créer respectivement, un poteniel harmonique, un nul et de définir le potentiel à partir d'une image en niveau de gris.
+Le champs **V** doit correspondre à une entrée parmi : **Harmonic**, **Null** et **Image**, qui permettent de créer respectivement, un poteniel harmonique, un nul et de définir le potentiel à partir d'une image en niveau de gris.
 
-Le champs `image_V` doit correspondre au nom de l'image souhaité. Les images doit être stockée dans le dossier `images` à la racine. Deux images sont déjà disponible dans le dossier.
-
+Le champs **image_V** doit correspondre au nom de l'image souhaité. Les images doit être stockée dans le dossier **images** à la racine. Deux images sont déjà disponible dans le dossier.
 
 ## Lancer une expérience
 Ensuite, entrez la commande `make exp` pour commencer l'expérience paramétrée dans le fichier JSON.
