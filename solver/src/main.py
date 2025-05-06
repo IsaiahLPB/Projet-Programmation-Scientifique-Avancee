@@ -47,12 +47,12 @@ match method:
 			solver.FTCS_derivation(psi_real, psi_imag, info)
 
 			norm = solver.Calc_norm(psi_real, psi_imag)
-			print("Norm:", norm)
+			#print("Norm:", norm)
 			if norm > 3.0:
-				print("Too high norm, stopping simulation")
+				print("Too high norm ( > 3), stopping simulation")
 				break
 			elif norm < 0.1:
-				print("Too low norm, stopping simulation")
+				print("Too low norm ( < 0.1), stopping simulation")
 				break
 
 			# Write the files in the DB
