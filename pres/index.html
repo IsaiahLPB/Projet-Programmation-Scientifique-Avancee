@@ -481,8 +481,8 @@ def calc2DHOPsi0():
 	coeff_y.append(1)
 	H3_y = Hermite(coeff_y)
 
-	x = np.linspace(-10, 10, n_x)
-	y = np.linspace(-10, 10, n_y)
+	x = np.linspace(x0-10, x0+10, n_x)
+	y = np.linspace(y0-10, y0+10, n_y)
 	X, Y = np.meshgrid(x, y)
 	psi_x = (1/np.sqrt(2**psi_2DH0_nx * sp.factorial(psi_2DH0_nx))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * X) /(2 * h) )) * H3_x(np.sqrt(m * w / h)* X)
 	psi_y = (1/np.sqrt(2**psi_2DH0_ny * sp.factorial(psi_2DH0_ny))) * ((m*w)/np.pi*h)**(1/4) * np.exp(-((m * w * Y) /(2 * h) )) * H3_y(np.sqrt(m * w / h)* Y)
